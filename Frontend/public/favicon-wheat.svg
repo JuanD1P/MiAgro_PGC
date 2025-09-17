@@ -1,0 +1,21 @@
+<!-- /public/favicon-wheat.svg -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Ícono de trigo sencillo -->
+  <g transform="translate(22,6)">
+    <!-- tallo -->
+    <path d="M10 6 v44" stroke="#1B4D3E" stroke-width="3" fill="none" stroke-linecap="round"></path>
+    <!-- granos centrales -->
+    <ellipse cx="10" cy="10" rx="8" ry="5" fill="#F4A261"></ellipse>
+    <ellipse cx="10" cy="18" rx="8" ry="5" fill="#F4A261"></ellipse>
+    <ellipse cx="10" cy="26" rx="8" ry="5" fill="#F4A261"></ellipse>
+    <ellipse cx="10" cy="34" rx="8" ry="5" fill="#F4A261"></ellipse>
+    <ellipse cx="10" cy="42" rx="8" ry="5" fill="#F4A261"></ellipse>
+    <!-- granos laterales -->
+    <ellipse cx="4" cy="14" rx="8" ry="5" fill="#E9C46A" transform="rotate(-40 4 14)"></ellipse>
+    <ellipse cx="4" cy="22" rx="8" ry="5" fill="#E9C46A" transform="rotate(-40 4 22)"></ellipse>
+    <ellipse cx="4" cy="30" rx="8" ry="5" fill="#E9C46A" transform="rotate(-40 4 30)"></ellipse>
+    <ellipse cx="16" cy="14" rx="8" ry="5" fill="#E9C46A" transform="rotate(40 16 14)"></ellipse>
+    <ellipse cx="16" cy="22" rx="8" ry="5" fill="#E9C46A" transform="rotate(40 16 22)"></ellipse>
+    <ellipse cx="16" cy="30" rx="8" ry="5" fill="#E9C46A" transform="rotate(40 16 30)"></ellipse>
+  </g>
+</svg>
