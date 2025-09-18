@@ -6,13 +6,14 @@ import NotFound from './Components/NotFound';
 import ProtectedRoute from './Components/PrivateRoute';
 import Admin from './Components/Admin';
 import Navbar from './Components/Navbar';
-
+import Home from './Components/Home';
 
 function App() {
     return (
         <Router>
             <Routes>
-                <Route path="/" element={<Navigate to="/userlogin" />} />
+                <Route path="/" element={<Navigate to="/Home" />} />
+                <Route path="/Home" element={<Home />} />
                 <Route path="/userlogin" element={<Login />} />
                 <Route path="/Registro" element={<Registro />} />
 
