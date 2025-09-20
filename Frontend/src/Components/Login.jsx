@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import logo from '../ImagenesP/ImagenesLogin/logoMiAgro.png';
@@ -22,8 +22,12 @@ export default function Login() {
   const [values, setValues] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [toasts, setToasts] = useState([]);
-  const navigate = useNavigate();
 
+  // ▶ Modal "Olvidé mi contraseña"
+  const [showReset, setShowReset] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+
+  const navigate = useNavigate();
   axios.defaults.withCredentials = true;
 
   useEffect(() => {
@@ -35,9 +39,9 @@ export default function Login() {
 
   const showToast = (message, opts = {}) => {
     const id = crypto.randomUUID();
-    setToasts(t => [...t, { id, message, ...opts }]);
+    setToasts((t) => [...t, { id, message, ...opts }]);
   };
-  const closeToast = id => setToasts(t => t.filter(x => x.id !== id));
+  const closeToast = (id) => setToasts((t) => t.filter((x) => x.id !== id));
 
   const firebaseErrorToMessage = (err) => {
     const c = err?.code || "";
@@ -126,8 +130,25 @@ export default function Login() {
     }
   };
 
-  const handleReset = async () => {
-    const email = (values.email || "").trim();
+  // ▶ Abrir modal con email precargado si existe
+  const openResetModal = () => {
+    setResetEmail((values.email || "").trim());
+    setShowReset(true);
+  };
+  const closeResetModal = useCallback(() => setShowReset(false), []);
+
+  // ▶ Cerrar con ESC
+  useEffect(() => {
+    if (!showReset) return;
+    const onKey = (e) => { if (e.key === "Escape") closeResetModal(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showReset, closeResetModal]);
+
+  // ▶ Enviar enlace desde el modal
+  const handleResetFromModal = async (e) => {
+    e?.preventDefault?.();
+    const email = (resetEmail || "").trim();
     if (!email) {
       showToast("Escribe tu correo para enviarte el enlace", { variant: "warning", title: "Recuperar contraseña" });
       return;
@@ -136,6 +157,7 @@ export default function Login() {
       setLoading(true);
       await sendPasswordResetEmail(auth, email);
       showToast("Te enviamos un correo para restablecer tu contraseña", { variant: "success", title: "Revisa tu correo", icon: "✅" });
+      closeResetModal();
     } catch (err) {
       const msg = firebaseErrorToMessage(err);
       showToast(msg, { variant: "error", title: "No se pudo enviar el correo" });
@@ -147,9 +169,12 @@ export default function Login() {
   return (
     <div className="LoginPcontainer">
       <ToastStack toasts={toasts} onClose={closeToast} />
-      <header className="LoginHeader">
-        <img src={logo} alt="Logo" className="logoLogin" />
+      <header className="mgreg-header">
+        <a href="/" aria-label="Volver al inicio" className="mgreg-logoLink">
+          <img src={logo} alt="Logo MiAgro" className="mgreg-logoHeader" />
+        </a>
       </header>
+
 
       <div className="LoginScontainer">
         <h2 className="LoginTitle">Inicio de sesión</h2>
@@ -179,7 +204,7 @@ export default function Login() {
             {loading ? "Ingresando..." : "Ingresar"}
           </button>
 
-          <button type="button" className="btnLink" onClick={handleReset} disabled={loading}>
+          <button type="button" className="btnLink" onClick={openResetModal} disabled={loading}>
             ¿Olvidaste tu contraseña?
           </button>
 
@@ -193,10 +218,75 @@ export default function Login() {
           </button>
 
           <button onClick={() => navigate("/Registro")} type="button" className="btnLink">
-            No tienes cuenta?Registrate
+            ¿No tienes cuenta? Regístrate
           </button>
         </form>
       </div>
+
+      {/* ▶ Modal Recuperar contraseña */}
+      {showReset && (
+        <div
+          className="resetModalOverlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="resetTitle"
+          onMouseDown={(e) => {
+            // Cerrar si clic en backdrop
+            if (e.target.classList.contains("resetModalOverlay")) closeResetModal();
+          }}
+        >
+          <div className="resetModalCard" role="document">
+            <button
+              type="button"
+              className="resetClose"
+              aria-label="Cerrar"
+              onClick={closeResetModal}
+            >
+              ×
+            </button>
+
+            <div className="resetIcon" aria-hidden="true">🔒</div>
+            <h3 id="resetTitle" className="resetTitle">¿Tienes problemas para iniciar sesión?</h3>
+            <p className="resetDesc">
+              Ingresa tu correo electrónico y te enviaremos un enlace para que recuperes el acceso a tu cuenta.
+            </p>
+
+            <form onSubmit={handleResetFromModal} className="resetForm" noValidate>
+              <input
+                type="email"
+                placeholder="Correo electrónico"
+                className="resetInput"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                autoFocus
+                autoComplete="email"
+              />
+
+              <button
+                type="submit"
+                className="resetBtnPrimary"
+                disabled={loading}
+                aria-disabled={loading}
+              >
+                {loading ? "Enviando..." : "Enviar enlace de inicio de sesión"}
+              </button>
+            </form>
+
+            <div className="resetDivider" role="separator" aria-hidden="true" />
+            <button
+              type="button"
+              className="resetCreateBtn"
+              onClick={() => { closeResetModal(); navigate("/Registro"); }}
+            >
+              Crear cuenta nueva
+            </button>
+
+            <button type="button" className="resetBackBtn" onClick={closeResetModal}>
+              Volver al inicio de sesión
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

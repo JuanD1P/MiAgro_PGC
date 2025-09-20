@@ -7,15 +7,19 @@ import ProtectedRoute from './Components/PrivateRoute';
 import Admin from './Components/Admin';
 import Navbar from './Components/Navbar';
 import Home from './Components/Home';
+import Footer from './Components/Footer';
 
 function App() {
     return (
         <Router>
             <Routes>
                 <Route path="/" element={<Navigate to="/Home" />} />
-                <Route path="/Home" element={<Home />} />
                 <Route path="/userlogin" element={<Login />} />
                 <Route path="/Registro" element={<Registro />} />
+
+                <Route element={<LayoutWithNavbar />}>
+                <Route path="/Home" element={<Home />} />
+                
 
                 
                 {/* RUTAS PARA EL ADMINISTRADOR */}
@@ -29,12 +33,14 @@ function App() {
 
                 {/* RUTAS PARA LOS USUARIOS */}   
 
-                <Route element={<LayoutWithNavbar />}>
+                
                     <Route path="/Inicio" element={
                         <ProtectedRoute allowedRoles={['USER']}>
                             <Inicio />
                         </ProtectedRoute>
                     } />
+
+
                 </Route>
 
     
@@ -53,6 +59,7 @@ function LayoutWithNavbar() {
     <>
       <Navbar />
       <Outlet />
+      <Footer />
     </>
   );
 }

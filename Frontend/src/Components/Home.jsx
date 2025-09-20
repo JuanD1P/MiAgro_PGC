@@ -96,17 +96,6 @@ export default function Home() {
 
   return (
     <div className={styles.app}>
-      {/* LOGO SUELTO (sin navbar) */}
-      <div className={styles.logoOnly} aria-label="Logo Mi Agro">
-        <img
-          src={INICIO_LOGO}
-          alt="Mi Agro"
-          className={styles.logo}
-          draggable={false}
-          onClick={() => navigate("/")}
-        />
-      </div>
-
       {/* HERO */}
       <section className={styles.hero} aria-label="Bienvenida">
         <div className={styles.heroInner}>
@@ -133,10 +122,6 @@ export default function Home() {
             <strong className={styles.accentStrong}>rentabilidad</strong>, siempre cuidando la tierra y el futuro de nuestras comunidades.
           </p>
 
-          <div className={styles.actions} role="group" aria-label="Acciones de usuario">
-            <button className={styles.btnPrimary} onClick={() => navigate("/Registro")}>Registrate</button>
-            <button className={styles.btnSecondary} onClick={() => navigate("/userlogin")}>Inicia Sesion</button>
-          </div>
         </div>
 
         {/* CARRUSEL */}

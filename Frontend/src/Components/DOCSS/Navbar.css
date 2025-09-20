@@ -1,0 +1,99 @@
+:root {
+  --blue-dark: #0b2a4a;
+  --blue-mid: #184a79;
+  --blue-light: #2a6fb1;
+  --white: #fff;
+}
+
+.navbar {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 24px;
+  background: linear-gradient(90deg, var(--blue-dark), var(--blue-mid));
+  color: var(--white);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.navbar-logo {
+  height: 48px;
+  width: auto;
+}
+
+.navbar-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--white);
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.navbar-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.05s;
+  border: none;
+}
+
+.navbar-btnPrimary {
+  background: var(--blue-light);
+  color: var(--white);
+}
+
+.navbar-btnPrimary:hover {
+  background: #3d82c0;
+}
+
+.navbar-btnSecondary {
+  background: transparent;
+  border: 1px solid var(--white);
+  color: var(--white);
+}
+
+.navbar-btnSecondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.navbar-btnLogout {
+  background: #d13a2c;
+  color: var(--white);
+}
+
+.navbar-btnLogout:hover {
+  background: #b42318;
+}
+
+.navbar-btn:active {
+  transform: translateY(1px);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .navbar-title {
+    font-size: 16px;
+  }
+  .navbar-logo {
+    height: 40px;
+  }
+  .navbar-btn {
+    font-size: 14px;
+    padding: 6px 12px;
+  }
+}
