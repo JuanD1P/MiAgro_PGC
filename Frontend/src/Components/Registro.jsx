@@ -1,9 +1,18 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import './DOCSS/Registro.css';
 import logo from '../ImagenesP/ImagenesLogin/logoMiAgro.png';
+
+// 🔐 Firebase
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup
+} from "firebase/auth";
+import { auth, db } from "../firebase/client";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 
 const Registro = () => {
   const [values, setValues] = useState({
@@ -20,74 +29,95 @@ const Registro = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const navigate = useNavigate();
-  axios.defaults.withCredentials = true;
 
+  // ------- Helpers -------
+  const validarCampos = () => {
+    if (!termsAccepted) return "Debes aceptar los Términos y Condiciones para continuar.";
+    if (!values.nombre_completo || !values.email || !values.password || !values.confirmPassword)
+      return "Todos los campos son obligatorios";
+    if (!values.email.includes('@')) return "El correo debe contener un '@'";
+    if (values.password.length < 6) return "La contraseña debe tener al menos 6 caracteres";
+    if (!/[A-Za-z]/.test(values.password)) return "La contraseña debe contener al menos una letra";
+    if (!/\d/.test(values.password)) return "La contraseña debe contener al menos un número";
+    if (values.password !== values.confirmPassword) return "Las contraseñas no coinciden";
+    return null;
+  };
+
+  const crearDocumentoUsuarioSiNoExiste = async (uid, dataExtra = {}) => {
+    const ref = doc(db, "usuarios", uid);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      await setDoc(ref, {
+        nombre: values.nombre_completo || dataExtra.displayName || "",
+        email: values.email || dataExtra.email || "",
+        rol: "USER",               // rol por defecto
+        activo: true,
+        creadoEn: serverTimestamp(),
+        ...dataExtra,
+      });
+    }
+  };
+
+  // ------- Registro con Email/Password -------
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError(null);
 
-    // Bloqueo si no aceptó T&C
-    if (!termsAccepted) {
-      setError("Debes aceptar los Términos y Condiciones para continuar.");
+    const errMsg = validarCampos();
+    if (errMsg) {
+      setError(errMsg);
       return;
     }
-
-    // Validaciones de campos obligatorios
-    if (!values.nombre_completo || !values.email || !values.password || !values.confirmPassword) {
-      setError("Todos los campos son obligatorios");
-      return;
-    }
-
-    // Validación simple de correo
-    if (!values.email.includes('@')) {
-      setError("El correo debe contener un '@'");
-      return;
-    }
-
-    // Longitud mínima de contraseña
-    if (values.password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres");
-      return;
-    }
-
-    // Debe contener al menos una letra
-    const hasLetter = /[A-Za-z]/.test(values.password);
-    if (!hasLetter) {
-      setError("La contraseña debe contener al menos una letra");
-      return;
-    }
-
-    // Debe contener al menos un número
-    const hasNumber = /\d/.test(values.password);
-    if (!hasNumber) {
-      setError("La contraseña debe contener al menos un número");
-      return;
-    }
-
-    // Coincidencia de contraseñas
-    if (values.password !== values.confirmPassword) {
-      setError("Las contraseñas no coinciden");
-      return;
-    }
-
-    const dataToSend = {
-      nombre_completo: values.nombre_completo,
-      email: values.email,
-      password: values.password
-    };
 
     try {
       setIsSubmitting(true);
-      const result = await axios.post('http://localhost:3000/auth/register', dataToSend);
-      if (result.data.registrationStatus) {
-        alert("Registro exitoso");
-        navigate('/userlogin');
-      } else {
-        setError(result.data.Error || "No fue posible completar el registro.");
-      }
+
+      // 1) Crear cuenta en Firebase Auth
+      const cred = await createUserWithEmailAndPassword(auth, values.email, values.password);
+
+      // 2) Guardar displayName en el perfil de Auth
+      await updateProfile(cred.user, { displayName: values.nombre_completo });
+
+      // 3) Crear doc en Firestore (con rol por defecto)
+      await crearDocumentoUsuarioSiNoExiste(cred.user.uid);
+
+      // 4) Redirigir a login (mantengo tu ruta /userlogin)
+      navigate('/userlogin');
     } catch (err) {
       console.error("Error en el registro:", err);
-      setError("Error en el servidor, intenta más tarde");
+      let msg = err?.message || "No fue posible completar el registro.";
+      if (err?.code === "auth/email-already-in-use") msg = "Este correo ya está en uso";
+      setError(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ------- Registro/Ingreso con Google -------
+  const provider = new GoogleAuthProvider();
+  const handleGoogle = async () => {
+    try {
+      // Si quieres exigir T&C también para Google, descomenta:
+      // if (!termsAccepted) { setError("Debes aceptar los Términos y Condiciones para continuar."); return; }
+
+      setError(null);
+      setIsSubmitting(true);
+
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      await crearDocumentoUsuarioSiNoExiste(user.uid, {
+        displayName: user.displayName || "",
+        email: user.email || "",
+        provider: "google",
+      });
+
+      // Entra directo (o navega al login si prefieres)
+      navigate('/userlogin'); // o navigate('/Inicio');
+    } catch (err) {
+      console.error("Google sign-in error:", err);
+      let msg = err?.message || "No fue posible continuar con Google";
+      setError(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -195,6 +225,17 @@ const Registro = () => {
             aria-disabled={!termsAccepted || isSubmitting}
           >
             {isSubmitting ? "Registrando..." : "Registrarse"}
+          </button>
+
+          {/* Botón Google (usa tus clases o agrega una en tu CSS si quieres estilos distintos) */}
+          <button
+            type="button"
+            onClick={handleGoogle}
+            className="btn-google" /* crea esta clase en tu CSS si deseas */
+            disabled={isSubmitting}
+            style={{ marginTop: 12 }}
+          >
+            Continuar con Google
           </button>
 
           <button

@@ -2,15 +2,19 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import "@sweetalert2/themes/borderless/borderless.css"; // tema
+import "@sweetalert2/themes/borderless/borderless.css";
 import logo from "../ImagenesP/ImagenesLogin/ADMINLOGO.png";
 import "./DOCSS/Admin.css";
 
-axios.defaults.withCredentials = true;
-
-const authApi = axios.create({
-  baseURL: "http://localhost:3000/auth",
+// Axios con Bearer automático
+const api = axios.create({
+  baseURL: "http://localhost:3000",
   withCredentials: true,
+});
+api.interceptors.request.use((config) => {
+  const t = localStorage.getItem("auth-token");
+  if (t) config.headers.Authorization = `Bearer ${t}`;
+  return config;
 });
 
 export default function Admin() {
@@ -25,7 +29,7 @@ export default function Admin() {
     try {
       setULoading(true);
       setUErr("");
-      const { data } = await authApi.get("/usuarios");
+      const { data } = await api.get("/api/usuarios");
       setUsuarios(Array.isArray(data) ? data : []);
     } catch (error) {
       setUErr(error?.response?.data?.error || "No fue posible cargar los usuarios");
@@ -37,26 +41,26 @@ export default function Admin() {
   const eliminarUsuario = async (id) => {
     const result = await Swal.fire({
       title: "¿Eliminar usuario?",
-      text: "Esta acción no se puede deshacer.",
+      text: "Esto eliminará el documento y la cuenta de Auth.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Sí, eliminar",
-      cancelButtonText: "No, no eliminar",
+      cancelButtonText: "Cancelar",
       reverseButtons: true,
-      focusCancel: true,
       showLoaderOnConfirm: true,
-      buttonsStyling: false, // 👈 evita estilos por defecto que se rompan
+      buttonsStyling: false,
       customClass: {
         popup: "sw-popup",
         title: "sw-title",
         htmlContainer: "sw-text",
-        actions: "sw-actions", // 👈 contenedor de los botones
+        actions: "sw-actions",
         confirmButton: "sw-confirm",
         cancelButton: "sw-cancel",
       },
       preConfirm: async () => {
-        try { await authApi.delete(`/usuarios/${id}`); }
-        catch (error) {
+        try {
+          await api.delete(`/api/usuarios/${id}`);
+        } catch (error) {
           Swal.showValidationMessage(
             error?.response?.data?.error || "No fue posible eliminar el usuario"
           );
@@ -71,7 +75,7 @@ export default function Admin() {
       Swal.fire({
         icon: "success",
         title: "Usuario eliminado",
-        timer: 1400,
+        timer: 1200,
         showConfirmButton: false,
         customClass: { popup: "sw-popup" },
         buttonsStyling: false,
@@ -83,11 +87,11 @@ export default function Admin() {
     if (rolActual === nuevoRol) return;
     const { isConfirmed } = await Swal.fire({
       title: "Cambiar rol",
-      text: `¿Deseas cambiar el rol a ${nuevoRol}?`,
+      text: `¿Cambiar rol a ${nuevoRol}?`,
       icon: "question",
       showCancelButton: true,
       confirmButtonText: "Sí, cambiar",
-      cancelButtonText: "No, no cambiar",
+      cancelButtonText: "Cancelar",
       reverseButtons: true,
       buttonsStyling: false,
       customClass: {
@@ -102,12 +106,12 @@ export default function Admin() {
     if (!isConfirmed) return;
 
     try {
-      await authApi.put(`/usuarios/${id}/rol`, { rol: nuevoRol });
+      await api.put(`/api/usuarios/${id}/rol`, { rol: nuevoRol });
       await obtenerUsuarios();
       Swal.fire({
         icon: "success",
         title: "Rol actualizado",
-        timer: 1200,
+        timer: 1000,
         showConfirmButton: false,
         customClass: { popup: "sw-popup" },
         buttonsStyling: false,
@@ -159,7 +163,7 @@ export default function Admin() {
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>Nombre Completo</th>
+                  <th>Nombre</th>
                   <th>Email</th>
                   <th>Rol</th>
                   <th style={{ minWidth: 120 }}>Acciones</th>
@@ -178,12 +182,12 @@ export default function Admin() {
                   usuarios.map((u) => (
                     <tr key={u.id}>
                       <td>{u.id}</td>
-                      <td className="cell-strong">{u.nombre_completo}</td>
+                      <td className="cell-strong">{u.nombre_completo || u.nombre || "-"}</td>
                       <td>{u.email}</td>
                       <td>
                         <select
                           className="admin-role-select"
-                          value={u.rol}
+                          value={u.rol || "USER"}
                           onChange={(e) => cambiarRol(u.id, u.rol, e.target.value)}
                         >
                           <option value="USER">USER</option>
