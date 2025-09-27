@@ -2,11 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Calendar, BarChart3, CloudSun, Leaf } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import styles from "./DOCSS/Home.module.css";
-
-/* ---------- LOGO ---------- */
 import INICIO_LOGO from "../ImagenesP/ImagenesInicio/logoMiAgro.png";
-
-/* ---------- IMÁGENES DEL CARRUSEL ---------- */
 import Slide1 from "../ImagenesP/ImagenesInicio/Madrid.jpeg";
 import Slide2 from "../ImagenesP/ImagenesInicio/Soacha.jpg";
 import Slide3 from "../ImagenesP/ImagenesInicio/Mosquera.jpg";
@@ -15,7 +11,6 @@ import Slide5 from "../ImagenesP/ImagenesInicio/Faca.jpg";
 import Slide6 from "../ImagenesP/ImagenesInicio/Elrosal.jpg";
 import Slide7 from "../ImagenesP/ImagenesInicio/Subachoque.jpeg";
 import Slide8 from "../ImagenesP/ImagenesInicio/Zipacon.jpg";
-
 import Slide9 from  "../ImagenesP/ImagenesInicio/cota.webp";
 import Slide10 from "../ImagenesP/ImagenesInicio/tenjo.jpg";
 import Slide11 from "../ImagenesP/ImagenesInicio/tabio.jpeg";
@@ -32,8 +27,6 @@ import Slide21 from "../ImagenesP/ImagenesInicio/la calera.jpg";
 import Slide22 from "../ImagenesP/ImagenesInicio/guatavita.jpeg";
 import Slide23 from "../ImagenesP/ImagenesInicio/guasca.jpeg";
 import Slide24 from "../ImagenesP/ImagenesInicio/bojaca.jpg";
-
-/* ---------- GALERÍA ---------- */
 import CultivoA from "../ImagenesP/ImagenesInicio/CultivoA.jpeg";
 import CultivoB from "../ImagenesP/ImagenesInicio/CultivoB.jpg";
 import PaisajeA from "../ImagenesP/ImagenesInicio/PaisajeA.jpg";
@@ -43,6 +36,11 @@ import MercadoB from "../ImagenesP/ImagenesInicio/MercadoB.jpg";
 
 export default function Home() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    localStorage.clear();
+    window.dispatchEvent(new Event("auth-changed"));
+  }, []);
 
   const slides = useMemo(
     () => [
@@ -96,7 +94,6 @@ export default function Home() {
 
   return (
     <div className={styles.app}>
-      {/* HERO */}
       <section className={styles.hero} aria-label="Bienvenida">
         <div className={styles.heroInner}>
           <span className={styles.badge}>
@@ -109,7 +106,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* INTRO */}
       <section className={styles.main} aria-label="Introducción">
         <div className={styles.textCard}>
           <p>
@@ -121,10 +117,8 @@ export default function Home() {
             <strong className={styles.accentStrong}>inteligencia</strong>, reducir riesgos y aumentar tu{" "}
             <strong className={styles.accentStrong}>rentabilidad</strong>, siempre cuidando la tierra y el futuro de nuestras comunidades.
           </p>
-
         </div>
 
-        {/* CARRUSEL */}
         <div className={styles.imageCol}>
           <div className={styles.carousel} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
             <div className={styles.frame}>
@@ -139,14 +133,11 @@ export default function Home() {
                   onError={(e) => { e.currentTarget.style.display = "none"; }}
                 />
               ))}
-
               <div className={styles.caption} aria-live="polite">
                 {currentSlide.title}
               </div>
-
               <div className={styles.gradientMask} aria-hidden="true" />
             </div>
-
             <div className={styles.dots}>
               {slides.map((_, i) => (
                 <span
@@ -160,7 +151,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FEATURES */}
       <section className={styles.features}>
         <article className={styles.feature}>
           <div className={styles.featureHead}>
@@ -185,7 +175,6 @@ export default function Home() {
         </article>
       </section>
 
-      {/* STATS */}
       <section className={styles.stats}>
         <div className={styles.stat}><b>+10</b><span>Productos</span></div>
         <div className={styles.stat}><b>{slides.length}</b><span>Municipios</span></div>
@@ -193,7 +182,6 @@ export default function Home() {
         <div className={styles.stat}><b>100%</b><span>Sabana de Bogotá</span></div>
       </section>
 
-      {/* GALLERY */}
       <section className={styles.gallery}>
         <h2 className={styles.galleryTitle}>Explora la Sabana</h2>
         <div className={styles.galleryGrid}>
@@ -215,7 +203,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* QUOTE */}
       <section className={styles.quoteWrap}>
         <blockquote className={styles.quote}>
           “Sembrar con datos es sembrar con confianza. Cuando conoces tu tierra y tu mercado, cada decisión pesa menos y rinde más.”
@@ -223,15 +210,12 @@ export default function Home() {
         </blockquote>
       </section>
 
-      {/* CTA */}
       <section className={styles.cta}>
         <div className={styles.ctaCard}>
           <div>
             <div className={styles.ctaTitle}>Comienza con dos datos sencillos</div>
             <div className={styles.ctaText}>Selecciona municipio y fecha para ver recomendaciones a tu medida.</div>
           </div>
-
-          {/* AHORA ES BOTÓN Y VA AL LOGIN */}
           <button
             className={styles.ctaStart}
             onClick={() => navigate("/userlogin")}
@@ -241,7 +225,6 @@ export default function Home() {
           </button>
         </div>
       </section>
-
     </div>
   );
 }

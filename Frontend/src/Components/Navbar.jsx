@@ -1,14 +1,24 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import logo from "../ImagenesP/ImagenesLogin/LogoPeque.png";
 import "./DOCSS/Navbar.css";
 
 export default function Navbar() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [role, setRole] = useState(localStorage.getItem("user-role"));
+  const [isLogged, setIsLogged] = useState(!!localStorage.getItem("auth-token"));
 
-
-  const role = localStorage.getItem("user-role");
-  const isLogged = !!localStorage.getItem("auth-token");
+  useEffect(() => {
+    const sync = () => {
+      setRole(localStorage.getItem("user-role"));
+      setIsLogged(!!localStorage.getItem("auth-token"));
+    };
+    sync();
+    const h = () => sync();
+    window.addEventListener("auth-changed", h);
+    return () => window.removeEventListener("auth-changed", h);
+  }, [location]);
 
   const handleLogout = () => {
     localStorage.clear();
