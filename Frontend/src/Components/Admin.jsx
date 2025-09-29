@@ -1,12 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import "@sweetalert2/themes/borderless/borderless.css";
-import logo from "../ImagenesP/ImagenesLogin/ADMINLOGO.png";
 import "./DOCSS/Admin.css";
+import logo from "../ImagenesP/ImagenesLogin/ADMINLOGO.png";
 
-// Axios con Bearer automático
 const api = axios.create({
   baseURL: "http://localhost:3000",
   withCredentials: true,
@@ -17,24 +15,25 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-export default function Admin() {
-  const navigate = useNavigate();
+export default function AdminUsuarios() {
   const [usuarios, setUsuarios] = useState([]);
-  const [uLoading, setULoading] = useState(false);
-  const [uErr, setUErr] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const [busqueda, setBusqueda] = useState("");
+  const [filtroRol, setFiltroRol] = useState("ALL");
 
   useEffect(() => { obtenerUsuarios(); }, []);
 
   const obtenerUsuarios = async () => {
     try {
-      setULoading(true);
-      setUErr("");
+      setLoading(true);
+      setErr("");
       const { data } = await api.get("/api/usuarios");
       setUsuarios(Array.isArray(data) ? data : []);
-    } catch (error) {
-      setUErr(error?.response?.data?.error || "No fue posible cargar los usuarios");
+    } catch (e) {
+      setErr(e?.response?.data?.error || "No fue posible cargar los usuarios");
     } finally {
-      setULoading(false);
+      setLoading(false);
     }
   };
 
@@ -50,12 +49,12 @@ export default function Admin() {
       showLoaderOnConfirm: true,
       buttonsStyling: false,
       customClass: {
-        popup: "sw-popup",
-        title: "sw-title",
-        htmlContainer: "sw-text",
-        actions: "sw-actions",
-        confirmButton: "sw-confirm",
-        cancelButton: "sw-cancel",
+        popup: "au-sw-popup",
+        title: "au-sw-title",
+        htmlContainer: "au-sw-text",
+        actions: "au-sw-actions",
+        confirmButton: "au-sw-confirm",
+        cancelButton: "au-sw-cancel",
       },
       preConfirm: async () => {
         try {
@@ -77,7 +76,7 @@ export default function Admin() {
         title: "Usuario eliminado",
         timer: 1200,
         showConfirmButton: false,
-        customClass: { popup: "sw-popup" },
+        customClass: { popup: "au-sw-popup" },
         buttonsStyling: false,
       });
     }
@@ -85,35 +84,17 @@ export default function Admin() {
 
   const cambiarRol = async (id, rolActual, nuevoRol) => {
     if (rolActual === nuevoRol) return;
-    const { isConfirmed } = await Swal.fire({
-      title: "Cambiar rol",
-      text: `¿Cambiar rol a ${nuevoRol}?`,
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "Sí, cambiar",
-      cancelButtonText: "Cancelar",
-      reverseButtons: true,
-      buttonsStyling: false,
-      customClass: {
-        popup: "sw-popup",
-        title: "sw-title",
-        htmlContainer: "sw-text",
-        actions: "sw-actions",
-        confirmButton: "sw-confirm",
-        cancelButton: "sw-cancel",
-      },
-    });
-    if (!isConfirmed) return;
-
     try {
       await api.put(`/api/usuarios/${id}/rol`, { rol: nuevoRol });
       await obtenerUsuarios();
+      const el = document.getElementById(`au-role-${id}`);
+      if (el) { el.classList.remove("au-role-flash"); void el.offsetWidth; el.classList.add("au-role-flash"); }
       Swal.fire({
         icon: "success",
         title: "Rol actualizado",
-        timer: 1000,
+        timer: 900,
         showConfirmButton: false,
-        customClass: { popup: "sw-popup" },
+        customClass: { popup: "au-sw-popup" },
         buttonsStyling: false,
       });
     } catch (error) {
@@ -121,100 +102,136 @@ export default function Admin() {
         icon: "error",
         title: "No fue posible cambiar el rol",
         text: error?.response?.data?.error || "Intenta de nuevo",
-        customClass: { popup: "sw-popup" },
+        customClass: { popup: "au-sw-popup" },
         buttonsStyling: false,
       });
     }
   };
 
+  const lista = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    return usuarios.filter((u) => {
+      const coincideTexto =
+        `${u.id} ${u.nombre_completo || u.nombre || ""} ${u.email || ""}`
+          .toLowerCase()
+          .includes(q);
+      const coincideRol =
+        filtroRol === "ALL" ? true : (u.rol || "USER") === filtroRol;
+      return coincideTexto && coincideRol;
+    });
+  }, [usuarios, busqueda, filtroRol]);
+
   return (
-    <div className="admin-page">
-      <div className="admin-overlay" />
+    <div className="au-layout">
+      <aside className="au-nav">
+        <div className="au-navBrand">
+          <img src={logo} alt="Logo" className="au-navLogo" />
+          <div className="au-brandName">ACTIVIDADES</div>
+        </div>
+        <nav className="au-navMenu">
+          <button className="au-navItem au-navItem--active">Gestion de usuarios.</button>
+          <button className="au-navItem">Gestion de municipios</button>
+          <button className="au-navItem">Gestion de productos</button>
+        </nav>
+      </aside>
 
-      <header className="admin-header glass-strong">
-        <div className="admin-header-left">
-          <img src={logo} alt="Logo" className="admin-logo" />
+      <section className="au-main">
+        <header className="au-mainHead">
           <div>
-            <h1 className="admin-title">Panel de Administración</h1>
-            <p className="admin-subtitle">Gestión de usuarios</p>
+            <h1 className="au-title">Gestión de Usuarios</h1>
+            <p className="au-sub">Agrega nuevos usuarios o cambia permisos existentes.</p>
           </div>
-        </div>
+          <input
+            className="au-search"
+            placeholder="Buscar por nombre, correo o ID…"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+          />
+        </header>
 
-        <div className="admin-header-actions">
-          <button onClick={() => navigate("/GraficasA")} className="btn accent">
-            DATOS PRODUCTOS
-          </button>
-        </div>
-      </header>
+        {err && <div className="au-alert">{err}</div>}
 
-      <main className="admin-content">
-        <section className="card glass-strong">
-          <div className="card-head">
-            <h2>Usuarios</h2>
-            <div className="chip">
-              {uLoading ? "Cargando..." : `${usuarios.length} usuarios`}
+        <div className="au-card">
+          <div className="au-cardHead">
+            <div className="au-selectWrap">
+              <select
+                className="au-filter"
+                value={filtroRol}
+                onChange={(e) => setFiltroRol(e.target.value)}
+              >
+                <option value="ALL">Todos</option>
+                <option value="USER">Usuarios</option>
+                <option value="ADMIN">Administradores</option>
+              </select>
             </div>
+            <div className="au-chip">{loading ? "Cargando..." : `${lista.length} usuarios`}</div>
           </div>
 
-          {uErr && <div className="alert error">{uErr}</div>}
-
-          <div className="table-scroll">
-            <table className="admin-table">
-              <thead>
+          <div className="au-tableWrap">
+            <table className="au-table">
+              <thead className="au-thead">
                 <tr>
-                  <th>ID</th>
-                  <th>Nombre</th>
-                  <th>Email</th>
-                  <th>Rol</th>
-                  <th style={{ minWidth: 120 }}>Acciones</th>
+                  <th className="au-th">ID</th>
+                  <th className="au-th">USUARIO</th>
+                  <th className="au-th">CORREO</th>
+                  <th className="au-th">ROL</th>
+                  <th className="au-th">ACCIÓN</th>
                 </tr>
               </thead>
-              <tbody>
-                {uLoading ? (
-                  <tr>
-                    <td colSpan={5}>
-                      <div className="skeleton-row" />
-                      <div className="skeleton-row" />
-                      <div className="skeleton-row" />
-                    </td>
-                  </tr>
-                ) : usuarios.length ? (
-                  usuarios.map((u) => (
-                    <tr key={u.id}>
-                      <td>{u.id}</td>
-                      <td className="cell-strong">{u.nombre_completo || u.nombre || "-"}</td>
-                      <td>{u.email}</td>
-                      <td>
+              <tbody className="au-tbody">
+                {loading ? (
+                  <>
+                    <tr className="au-skRow"><td colSpan="5" /></tr>
+                    <tr className="au-skRow"><td colSpan="5" /></tr>
+                    <tr className="au-skRow"><td colSpan="5" /></tr>
+                  </>
+                ) : lista.length ? (
+                  lista.map((u) => (
+                    <tr key={u.id} className="au-row">
+                      <td className="au-td au-tdMuted">
+                        <span className="au-idSmall">{u.id}</span>
+                      </td>
+                      <td className="au-td au-user">
+                        <img
+                          src={`https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(u.nombre_completo || u.email || u.id)}`}
+                          alt={u.nombre_completo || "avatar"}
+                          className="au-avatar"
+                        />
+                        <span>{u.nombre_completo || u.nombre || "-"}</span>
+                      </td>
+                      <td className="au-td">{u.email}</td>
+                      <td className="au-td">
                         <select
-                          className="admin-role-select"
+                          id={`au-role-${u.id}`}
+                          className="au-role"
                           value={u.rol || "USER"}
                           onChange={(e) => cambiarRol(u.id, u.rol, e.target.value)}
                         >
-                          <option value="USER">USER</option>
-                          <option value="ADMIN">ADMIN</option>
+                          <option value="USER">Usuario</option>
+                          <option value="ADMIN">Administrador</option>
                         </select>
                       </td>
-                      <td>
+                      <td className="au-td">
                         <button
-                          className="btn danger"
+                          className="au-btnDanger"
                           onClick={() => eliminarUsuario(u.id)}
                           title="Eliminar usuario"
                         >
-                          <span className="x">✖</span> Eliminar
+                          🗑 Eliminar
                         </button>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="cell-empty">No hay usuarios</td>
+                    <td colSpan="5" className="au-empty">No hay usuarios</td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
     </div>
   );
 }

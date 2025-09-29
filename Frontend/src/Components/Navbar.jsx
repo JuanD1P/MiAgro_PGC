@@ -32,7 +32,7 @@ export default function Navbar() {
         <img src={logo} alt="MiAgro Logo" className="navbar-logo" />
         {isLogged && (
           <h1 className="navbar-title">
-            {role === "ADMIN" ? "Panel de Admin" : "Panel de Usuario"}
+            {role === "ADMIN" ? "| Panel de Administrador" : "Panel de Usuario"}
           </h1>
         )}
       </div>

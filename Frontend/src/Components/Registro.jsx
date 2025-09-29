@@ -84,6 +84,10 @@ export default function Registro() {
       await updateProfile(cred.user, { displayName: values.nombre_completo });
       await crearDocumentoUsuarioSiNoExiste(cred.user.uid);
       showToast('Registro exitoso', { variant: 'success', title: 'Listo', icon: '✅' });
+      setValues({ nombre_completo: '', email: '', password: '', confirmPassword: '' });
+      setTermsAccepted(false);
+      setShowPassword(false);
+      setShowConfirmPassword(false);
     } catch (error) {
       const msg = firebaseErrorToMessage(error);
       showToast(msg, { variant: 'error', title: 'No se pudo registrar' });
@@ -108,6 +112,10 @@ export default function Registro() {
       } else {
         showToast('Correo ya registrado', { variant: 'warning', title: 'Aviso' });
       }
+      setValues({ nombre_completo: '', email: '', password: '', confirmPassword: '' });
+      setTermsAccepted(false);
+      setShowPassword(false);
+      setShowConfirmPassword(false);
     } catch (error) {
       if (error?.code === 'auth/account-exists-with-different-credential') {
         const email = error?.customData?.email;

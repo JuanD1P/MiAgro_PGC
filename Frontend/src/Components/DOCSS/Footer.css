@@ -16,6 +16,11 @@
   --shadow: 0 14px 34px rgba(2, 6, 23, 0.18);
   --shadow-soft: 0 8px 22px rgba(2, 6, 23, 0.12);
 }
+.ma-footer{ margin-top:0 !important; }
+.ma-footer .ma-wrap{ padding-top:0 !important; }
+.ma-footer .ma-title, .ma-footer .ma-h3, .ma-footer .ma-desc{ margin-top:0 !important; }
+.ma-footer .ma-wave{ margin-top:0 !important; }
+.ma-footer p:first-child{ margin-top:0 !important; }
 
 /* -------- FOOTER -------- */
 .ma-footer{

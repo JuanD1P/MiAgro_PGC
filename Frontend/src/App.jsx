@@ -8,6 +8,7 @@ import Admin from './Components/Admin';
 import Navbar from './Components/Navbar';
 import Home from './Components/Home';
 import Footer from './Components/Footer';
+import NavbarAdm from './Components/NavbarAdm';
 
 function App() {
     return (
@@ -17,18 +18,22 @@ function App() {
                 <Route path="/userlogin" element={<Login />} />
                 <Route path="/Registro" element={<Registro />} />
 
-                <Route element={<LayoutWithNavbar />}>
-                <Route path="/Home" element={<Home />} />
-                
 
-                
-                {/* RUTAS PARA EL ADMINISTRADOR */}
-
+                 {/* RUTAS PARA EL ADMINISTRADOR */}
+                <Route element={<LayoutWithNavbar2 />}>
                     <Route path="/Admin" element={
                         <ProtectedRoute allowedRoles={['ADMIN']}>
                             <Admin />
                         </ProtectedRoute>
                     } />
+                </Route>
+
+                <Route element={<LayoutWithNavbar />}>
+                <Route path="/Home" element={<Home />} />
+                
+
+                
+               
 
 
                 {/* RUTAS PARA LOS USUARIOS */}   
@@ -63,5 +68,13 @@ function LayoutWithNavbar() {
     </>
   );
 }
+function LayoutWithNavbar2() {
+  return (
+    <>
+      <Navbar />
+      <Outlet />
 
+    </>
+  );
+}
 export default App;
