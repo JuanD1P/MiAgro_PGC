@@ -1,9 +1,44 @@
-import React from 'react'
+import React from "react";
+import { NavLink } from "react-router-dom";
+import logo from "../ImagenesP/ImagenesLogin/ADMINLOGO.png";
 
-const NavbarAdm = () => {
+export default function NavbarAdm() {
   return (
-    <div>NavbarAdm</div>
-  )
-}
+    <aside className="au-nav">
+      <div className="au-navBrand">
+        <img src={logo} alt="Logo" className="au-navLogo" />
+        <div className="au-brandName">ACTIVIDADES</div>
+      </div>
 
-export default NavbarAdm
+      <nav className="au-navMenu">
+        <NavLink
+          to="/Admin"
+          end
+          className={({ isActive }) =>
+            "au-navItem" + (isActive ? " au-navItem--active" : "")
+          }
+        >
+          Gestion de usuarios.
+        </NavLink>
+
+        <NavLink
+          to="/Admin/municipios"
+          className={({ isActive }) =>
+            "au-navItem" + (isActive ? " au-navItem--active" : "")
+          }
+        >
+          Gestion de municipios
+        </NavLink>
+
+        <NavLink
+          to="/Admin/productos"
+          className={({ isActive }) =>
+            "au-navItem" + (isActive ? " au-navItem--active" : "")
+          }
+        >
+          Gestion de productos
+        </NavLink>
+      </nav>
+    </aside>
+  );
+}

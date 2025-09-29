@@ -3,7 +3,8 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import "@sweetalert2/themes/borderless/borderless.css";
 import "./DOCSS/Admin.css";
-import logo from "../ImagenesP/ImagenesLogin/ADMINLOGO.png";
+// ⬇️ Nuevo: usamos la navbar separada
+import NavbarAdm from "./NavbarAdm";
 
 const api = axios.create({
   baseURL: "http://localhost:3000",
@@ -123,17 +124,8 @@ export default function AdminUsuarios() {
 
   return (
     <div className="au-layout">
-      <aside className="au-nav">
-        <div className="au-navBrand">
-          <img src={logo} alt="Logo" className="au-navLogo" />
-          <div className="au-brandName">ACTIVIDADES</div>
-        </div>
-        <nav className="au-navMenu">
-          <button className="au-navItem au-navItem--active">Gestion de usuarios.</button>
-          <button className="au-navItem">Gestion de municipios</button>
-          <button className="au-navItem">Gestion de productos</button>
-        </nav>
-      </aside>
+
+      <NavbarAdm />
 
       <section className="au-main">
         <header className="au-mainHead">

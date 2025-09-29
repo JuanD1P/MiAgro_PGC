@@ -25,11 +25,10 @@
   word-break:break-all;
   color:#64748b;
 }
-
 html,body,#root{height:100%}
 body{margin:0; font-family:Inter,"Nunito Sans",system-ui,Arial,sans-serif; color:var(--au-text)}
 .au-layout{
-  display:grid; grid-template-columns:260px 1fr; min-height:100vh;
+  min-height:100vh;
   background: linear-gradient(180deg, var(--au-bg) 0%, var(--au-bg-2) 100%);
 }
 .au-user{ display:flex; align-items:center; gap:10px; }
@@ -39,8 +38,22 @@ body{margin:0; font-family:Inter,"Nunito Sans",system-ui,Arial,sans-serif; color
   border-radius:50%;
   background:#f0f4f8;
 }
-
-.au-nav{background:var(--au-nav); color:#e7eafe; padding:20px 18px; display:flex; flex-direction:column; gap:18px;}
+.au-nav{
+  position:fixed;
+  left:0;
+  top:0;
+  width:260px;
+  height:100vh;
+  overflow:auto;
+  background:var(--au-nav);
+  color:#e7eafe;
+  padding:20px 18px;
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+  z-index:10;
+  box-sizing:border-box;
+}
 .au-navBrand{display:flex; align-items:center; gap:12px; padding:6px 8px}
 .au-navLogo{width:38px; height:38px; object-fit:contain; border-radius:8px; background:rgba(255,255,255,.06)}
 .au-brandName{font-weight:900; letter-spacing:.2px}
@@ -49,10 +62,18 @@ body{margin:0; font-family:Inter,"Nunito Sans",system-ui,Arial,sans-serif; color
   text-align:left; background:transparent; color:#e7eafe; border:1px solid rgba(255,255,255,.08);
   border-radius:10px; padding:10px 12px; cursor:pointer; font-weight:800;
   transition:background var(--au-fast), transform var(--au-fast);
+  text-decoration:none;
+  display:block;
 }
 .au-navItem:hover{ background:var(--au-nav-hover); transform:translateY(-1px) }
 .au-navItem--active{ background:linear-gradient(135deg,#1b2574,#152067); border-color:transparent }
-.au-main{ padding:26px; display:flex; flex-direction:column; gap:18px }
+.au-main{
+  margin-left:260px;
+  padding:26px;
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
 .au-mainHead{ display:flex; align-items:end; justify-content:space-between; gap:16px }
 .au-title{ margin:0; font-size:1.8rem; font-weight:900; color:#0b1b33 }
 .au-sub{ margin:.35rem 0 0; color:#5f6c88; font-weight:700 }
