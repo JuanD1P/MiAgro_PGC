@@ -9,7 +9,7 @@ import Navbar from './Components/Navbar';
 import Home from './Components/Home';
 import Footer from './Components/Footer';
 import NavbarAdm from './Components/NavbarAdm';
-
+import PreciosDiarios from './Components/PreciosDiarios';
 function App() {
     return (
         <Router>
@@ -30,11 +30,7 @@ function App() {
 
                 <Route element={<LayoutWithNavbar />}>
                 <Route path="/Home" element={<Home />} />
-                
-
-                
-               
-
+              
 
                 {/* RUTAS PARA LOS USUARIOS */}   
 
@@ -42,6 +38,12 @@ function App() {
                     <Route path="/Inicio" element={
                         <ProtectedRoute allowedRoles={['USER']}>
                             <Inicio />
+                        </ProtectedRoute>
+                    } />
+
+                      <Route path="/PreciosDiarios" element={
+                        <ProtectedRoute allowedRoles={['USER']}>
+                            <PreciosDiarios />
                         </ProtectedRoute>
                     } />
 

@@ -6,12 +6,12 @@ import 'dotenv/config';
 
 import { authAdmin, firestoreAdmin } from './utils/db.js';
 import { requireAuth } from './middlewares/requireAuth.js';
+import preciosRouter from './Routes/precios.js';
 
 const app = express();
 
-// CORS
 app.use(cors({
-  origin: ["http://localhost:5173"], // tu front
+  origin: ["http://localhost:5173"],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
@@ -37,6 +37,7 @@ app.post('/auth/session', async (req, res) => {
   }
 });
 
+app.use('/api', preciosRouter);
 app.use('/api', requireAuth, userRouter);
 
 app.listen(3000, () => {

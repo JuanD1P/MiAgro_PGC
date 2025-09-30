@@ -54,7 +54,7 @@ export default function Navbar() {
             </button>
           </>
         ) : (
-          <button onClick={handleLogout} className="navbar-btn navbar-btnLogout">
+          <button onClick={handleLogout} className="navbar-btn navbar-btnSecondary">
             Cerrar Sesión
           </button>
         )}
