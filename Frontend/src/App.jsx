@@ -10,6 +10,7 @@ import Home from './Components/Home';
 import Footer from './Components/Footer';
 import NavbarAdm from './Components/NavbarAdm';
 import PreciosDiarios from './Components/PreciosDiarios';
+import ProductosAdmin from './Components/ProductosAdmin';
 function App() {
     return (
         <Router>
@@ -26,6 +27,13 @@ function App() {
                             <Admin />
                         </ProtectedRoute>
                     } />
+
+                    <Route path="/ProductosAdmin" element={
+                        <ProtectedRoute allowedRoles={['ADMIN']}>
+                            <ProductosAdmin />
+                        </ProtectedRoute>
+                    } />
+
                 </Route>
 
                 <Route element={<LayoutWithNavbar />}>

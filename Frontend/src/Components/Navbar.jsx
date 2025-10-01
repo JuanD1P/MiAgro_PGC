@@ -32,7 +32,7 @@ export default function Navbar() {
         <img src={logo} alt="MiAgro Logo" className="navbar-logo" />
         {isLogged && (
           <h1 className="navbar-title">
-            {role === "ADMIN" ? "| Panel de Administrador" : "Panel de Usuario"}
+            {role === "ADMIN" ? "| Panel de Administrador" : "| Panel de Usuario"}
           </h1>
         )}
       </div>
@@ -54,9 +54,38 @@ export default function Navbar() {
             </button>
           </>
         ) : (
-          <button onClick={handleLogout} className="navbar-btn navbar-btnSecondary">
-            Cerrar Sesión
-          </button>
+          <>
+            {role === "ADMIN" && (
+              <>
+
+              </>
+            )}
+
+            {role === "USER" && (
+              <>
+              <button
+                  onClick={() => navigate("/Inicio")}
+                  className="navbar-btn navbar-btnPrimary"
+                >
+                  Inicio
+                </button>
+                <button
+                  onClick={() => navigate("/PreciosDiarios")}
+                  className="navbar-btn navbar-btnPrimary"
+                >
+                  Precios Hoy
+                </button>
+                
+              </>
+            )}
+
+            <button
+              onClick={handleLogout}
+              className="navbar-btn navbar-btnSecondary"
+            >
+              Cerrar Sesión
+            </button>
+          </>
         )}
       </div>
     </nav>
