@@ -1,16 +1,16 @@
 import { BrowserRouter as Router, Route, Routes, Navigate, Outlet } from 'react-router-dom';
 import Login from './Components/Login';
 import Registro from './Components/Registro';
-import Inicio from './Components/Inicio';
+import Inicio from './Components/Agricultores/Inicio';
 import NotFound from './Components/NotFound';
 import ProtectedRoute from './Components/PrivateRoute';
-import Admin from './Components/Admin';
+import Admin from './Components/Administradores/Admin';
 import Navbar from './Components/Navbar';
 import Home from './Components/Home';
 import Footer from './Components/Footer';
-import NavbarAdm from './Components/NavbarAdm';
-import PreciosDiarios from './Components/PreciosDiarios';
-import ProductosAdmin from './Components/ProductosAdmin';
+import NavbarAdm from './Components/Administradores/NavbarAdm';
+import PreciosDiarios from './Components/Agricultores/PreciosDiarios';
+import ProductosAdmin from './Components/Administradores/ProductosAdmin';
 function App() {
     return (
         <Router>

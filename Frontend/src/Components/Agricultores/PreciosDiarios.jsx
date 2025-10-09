@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { api } from '../api/axios';
-import { db } from '../firebase/client';
+import { api } from '../../api/axios';
+import { db } from '../../firebase/client';
 import { collection, onSnapshot } from 'firebase/firestore';
 
 export default function PreciosDiarios() {

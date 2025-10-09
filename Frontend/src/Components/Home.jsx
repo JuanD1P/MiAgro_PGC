@@ -1,3 +1,4 @@
+// Home.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Calendar, BarChart3, CloudSun, Leaf } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -11,7 +12,7 @@ import Slide5 from "../ImagenesP/ImagenesInicio/Faca.jpg";
 import Slide6 from "../ImagenesP/ImagenesInicio/Elrosal.jpg";
 import Slide7 from "../ImagenesP/ImagenesInicio/Subachoque.jpeg";
 import Slide8 from "../ImagenesP/ImagenesInicio/Zipacon.jpg";
-import Slide9 from  "../ImagenesP/ImagenesInicio/cota.webp";
+import Slide9 from "../ImagenesP/ImagenesInicio/cota.webp";
 import Slide10 from "../ImagenesP/ImagenesInicio/tenjo.jpg";
 import Slide11 from "../ImagenesP/ImagenesInicio/tabio.jpeg";
 import Slide12 from "../ImagenesP/ImagenesInicio/cajica.jpg";
@@ -67,7 +68,7 @@ export default function Home() {
       { src: Slide21, title: "La Calera, Cundinamarca" },
       { src: Slide22, title: "Guatavita, Cundinamarca" },
       { src: Slide23, title: "Guasca, Cundinamarca" },
-      { src: Slide24, title: "Bojacá, Cundinamarca" },
+      { src: Slide24, title: "Bojacá, Cundinamarca" }
     ],
     []
   );
@@ -77,19 +78,15 @@ export default function Home() {
   const hoveringRef = useRef(false);
 
   useEffect(() => {
-    const play = () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      timerRef.current = setInterval(() => {
-        if (!hoveringRef.current) setIdx((i) => (i + 1) % slides.length);
-      }, 3000);
-    };
-    play();
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      if (!hoveringRef.current) setIdx((i) => (i + 1) % slides.length);
+    }, 3200);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [slides.length]);
 
   const onMouseEnter = () => (hoveringRef.current = true);
   const onMouseLeave = () => (hoveringRef.current = false);
-
   const currentSlide = slides[idx] || { title: "" };
 
   return (
@@ -109,14 +106,12 @@ export default function Home() {
       <section className={styles.main} aria-label="Introducción">
         <div className={styles.textCard}>
           <p>
-            Aquí podrás conocer la información de los principales productos agrícolas, junto con proyecciones de mercado para decidir con mayor seguridad <strong>qué sembrar</strong>, <strong>cuándo</strong> y{" "}
-            <strong>cómo</strong> aprovechar las condiciones climáticas de nuestra región.
+            Aquí podrás conocer la información de los principales productos agrícolas, junto con proyecciones de mercado para decidir con mayor seguridad <strong>qué sembrar</strong>, <strong>cuándo</strong> y <strong>cómo</strong> aprovechar las condiciones climáticas de nuestra región.
           </p>
           <p>
-            Nuestro objetivo es ayudarte a sembrar con{" "}
-            <strong className={styles.accentStrong}>inteligencia</strong>, reducir riesgos y aumentar tu{" "}
-            <strong className={styles.accentStrong}>rentabilidad</strong>, siempre cuidando la tierra y el futuro de nuestras comunidades.
+            Nuestro objetivo es ayudarte a sembrar con <strong className={styles.accentStrong}>inteligencia</strong>, reducir riesgos y aumentar tu <strong className={styles.accentStrong}>rentabilidad</strong>, siempre cuidando la tierra y el futuro de nuestras comunidades.
           </p>
+
         </div>
 
         <div className={styles.imageCol}>
@@ -133,9 +128,7 @@ export default function Home() {
                   onError={(e) => { e.currentTarget.style.display = "none"; }}
                 />
               ))}
-              <div className={styles.caption} aria-live="polite">
-                {currentSlide.title}
-              </div>
+              <div className={styles.caption} aria-live="polite">{currentSlide.title}</div>
               <div className={styles.gradientMask} aria-hidden="true" />
             </div>
             <div className={styles.dots}>
@@ -151,7 +144,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className={styles.features}>
+      <section className={styles.features} id="features">
         <article className={styles.feature}>
           <div className={styles.featureHead}>
             <BarChart3 size={18} />
@@ -175,14 +168,14 @@ export default function Home() {
         </article>
       </section>
 
-      <section className={styles.stats}>
+      <section className={styles.stats} id="cifras">
         <div className={styles.stat}><b>+10</b><span>Productos</span></div>
         <div className={styles.stat}><b>{slides.length}</b><span>Municipios</span></div>
         <div className={styles.stat}><b>+ 12&nbsp;meses</b><span>Histórico</span></div>
         <div className={styles.stat}><b>100%</b><span>Sabana de Bogotá</span></div>
       </section>
 
-      <section className={styles.gallery}>
+      <section className={styles.gallery} id="galeria">
         <h2 className={styles.galleryTitle}>Explora la Sabana</h2>
         <div className={styles.galleryGrid}>
           <figure className={styles.tile}>
@@ -210,7 +203,7 @@ export default function Home() {
         </blockquote>
       </section>
 
-      <section className={styles.cta}>
+      <section className={styles.cta} id="cta">
         <div className={styles.ctaCard}>
           <div>
             <div className={styles.ctaTitle}>Comienza con dos datos sencillos</div>
@@ -225,6 +218,7 @@ export default function Home() {
           </button>
         </div>
       </section>
+
     </div>
   );
 }

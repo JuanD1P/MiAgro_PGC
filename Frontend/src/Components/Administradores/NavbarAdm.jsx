@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import logo from "../ImagenesP/ImagenesLogin/ADMINLOGO.png";
+import logo from "/ADMINLOGO.png";
 
 export default function NavbarAdm() {
   return (

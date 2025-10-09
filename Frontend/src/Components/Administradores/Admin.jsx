@@ -3,7 +3,6 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import "@sweetalert2/themes/borderless/borderless.css";
 import "./DOCSS/Admin.css";
-// ⬇️ Nuevo: usamos la navbar separada
 import NavbarAdm from "./NavbarAdm";
 
 const api = axios.create({

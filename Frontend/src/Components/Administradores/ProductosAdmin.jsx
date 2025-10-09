@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { db } from "../firebase/client";
+import { db } from "../../firebase/client";
 import { collection, addDoc, onSnapshot, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
-import { supabase } from "../supabase/client";
-import ToastStack from "./ToastStack";
+import { supabase } from "../../supabase/client";
+import ToastStack from "../ToastStack";
 
 export default function ProductosAdmin() {
   const [toasts, setToasts] = useState([]);
