@@ -156,7 +156,7 @@ export default function Home() {
         <div className={styles.stat}><b>+10</b><span>Productos</span></div>
         <div className={styles.stat}><b>{slides.length}</b><span>Municipios</span></div>
         <div className={styles.stat}><b>+ 12&nbsp;meses</b><span>Histórico</span></div>
-        <div className={styles.stat}><b>100%</b><span>Sabana de Bogotá</span></div>
+        <div className={styles.stat}><b>100%</b><span>Desiciones Sostenibles</span></div>
       </section>
 
       <section className={styles.gallery} id="galeria">
