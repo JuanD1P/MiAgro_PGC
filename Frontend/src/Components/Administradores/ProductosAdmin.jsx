@@ -3,11 +3,14 @@ import { db } from "../../firebase/client";
 import { collection, addDoc, onSnapshot, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { supabase } from "../../supabase/client";
 import ToastStack from "../ToastStack";
+import NavbarAdm from "./NavbarAdm.jsx";
+import "./DOCSS/Admin.css";
+
 
 export default function ProductosAdmin() {
   const [toasts, setToasts] = useState([]);
-  const toast = (m, o={}) => setToasts(t => [...t, { id: crypto.randomUUID(), message: m, ...o }]);
-  const closeToast = id => setToasts(t => t.filter(x => x.id !== id));
+  const toast = (m, o = {}) => setToasts((t) => [...t, { id: crypto.randomUUID(), message: m, ...o }]);
+  const closeToast = (id) => setToasts((t) => t.filter((x) => x.id !== id));
 
   const [nombre, setNombre] = useState("");
   const [file, setFile] = useState(null);
@@ -16,8 +19,8 @@ export default function ProductosAdmin() {
   const [productos, setProductos] = useState([]);
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, "productos"), snap => {
-      setProductos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    const unsub = onSnapshot(collection(db, "productos"), (snap) => {
+      setProductos(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
     return unsub;
   }, []);
@@ -51,7 +54,9 @@ export default function ProductosAdmin() {
       const url = await uploadToSupabase(file, nombre);
       await addDoc(collection(db, "productos"), { nombre: nombre.trim(), url, creadoEn: serverTimestamp() });
       toast("Producto creado", { variant: "success", icon: "✅" });
-      setNombre(""); setFile(null); setPreview("");
+      setNombre("");
+      setFile(null);
+      setPreview("");
     } catch (err) {
       toast(err.message || "Error subiendo/guardando", { variant: "error" });
     } finally {
@@ -70,43 +75,101 @@ export default function ProductosAdmin() {
   };
 
   return (
-    <div className="padm">
-      <ToastStack toasts={toasts} onClose={closeToast} />
-      <h1>Productos (Supabase Storage + Firestore)</h1>
+    <div className="au-layout">
+      <NavbarAdm />
+      <section className="au-main">
+        <ToastStack toasts={toasts} onClose={closeToast} />
+        <header className="au-mainHead">
+          <div>
+            <h1 className="au-title">Gestión de Productos</h1>
+            <p className="au-sub">Sube imágenes a Supabase y registra productos en Firestore.</p>
+          </div>
+        </header>
 
-      <form onSubmit={submit} className="card">
-        <input value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Nombre*" />
-        <input type="file" accept="image/*" onChange={onFile} />
-        {preview && <img src={preview} alt="preview" style={{maxHeight:180,display:"block"}}/>}
-        <button disabled={loading}>{loading ? "Guardando..." : "Guardar"}</button>
-      </form>
-
-      <div className="card">
-        <h2>Registrados</h2>
-        <div className="grid">
-          {productos.map(p => (
-            <article key={p.id} className="item">
-              <div className="thumb">{p.url ? <img src={p.url} alt={p.nombre}/> : "Sin imagen"}</div>
-              <strong>{p.nombre}</strong>
-              <div className="row">
-                {p.url && <a href={p.url} target="_blank" rel="noreferrer">Ver</a>}
-                <button onClick={()=>eliminar(p)} className="danger">Eliminar</button>
-              </div>
-            </article>
-          ))}
+        <div className="au-card">
+          <div className="au-cardHead">
+            <div className="au-chip">{productos.length} productos</div>
+          </div>
+          <div className="au-tableWrap" style={{ padding: 16 }}>
+            <form onSubmit={submit} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 12, alignItems: "center" }}>
+              <input
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                placeholder="Nombre*"
+                className="au-search"
+                style={{ minWidth: 0 }}
+              />
+              <input type="file" accept="image/*" onChange={onFile} className="au-filter" />
+              {preview && (
+                <div style={{ gridColumn: "1 / -1", display: "flex", gap: 12, alignItems: "center" }}>
+                  <img src={preview} alt="preview" style={{ maxHeight: 140, borderRadius: 12, border: "1px solid var(--au-line)", background: "#fff" }} />
+                </div>
+              )}
+              <button
+                type="submit"
+                disabled={loading}
+                className="au-btnDanger"
+                style={{ justifySelf: "start", background: "#111827", color: "#fff", borderColor: "#111827" }}
+              >
+                {loading ? "Guardando..." : "Guardar"}
+              </button>
+            </form>
+          </div>
         </div>
-      </div>
 
-      <style>{`
-        .padm{max-width:900px;margin:0 auto;padding:20px}
-        .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin:12px 0;box-shadow:0 6px 14px rgba(0,0,0,.04)}
-        .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
-        .item{border:1px solid #eee;border-radius:10px;padding:10px}
-        .thumb{height:140px;display:flex;align-items:center;justify-content:center;background:#f8fafc;margin-bottom:8px}
-        img{max-width:100%;max-height:100%;object-fit:contain}
-        .row{display:flex;justify-content:space-between;gap:8px}
-        .danger{background:#fff;color:#dc2626;border:1px solid #dc2626;border-radius:8px;padding:6px 10px}
-      `}</style>
+        <div className="au-card">
+          <div className="au-cardHead">
+            <h3 className="au-title" style={{ fontSize: "1.1rem" }}>Registrados</h3>
+          </div>
+          <div className="au-tableWrap" style={{ padding: 16 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))",
+                gap: 14,
+              }}
+            >
+              {productos.map((p) => (
+                <article key={p.id} className="au-row" style={{ display: "grid", gap: 8 }}>
+                  <div
+                    className="au-td"
+                    style={{
+                      height: 160,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: 14,
+                      background: "var(--au-surface)",
+                    }}
+                  >
+                    {p.url ? <img src={p.url} alt={p.nombre} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} /> : "Sin imagen"}
+                  </div>
+                  <div className="au-td au-tdStrong" style={{ borderRadius: 14 }}>{p.nombre}</div>
+                  <div className="au-td" style={{ display: "flex", gap: 8, justifyContent: "space-between", alignItems: "center", borderRadius: 14 }}>
+                    {p.url ? (
+                      <a
+                        href={p.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="au-btnDanger"
+                        style={{ background: "linear-gradient(180deg,#ffffff,#f8fafc)", color: "#0b0b0b", borderColor: "rgba(0,0,0,.06)" }}
+                      >
+                        Ver
+                      </a>
+                    ) : (
+                      <span style={{ color: "var(--au-muted)", fontWeight: 800 }}>Sin URL</span>
+                    )}
+                    <button onClick={() => eliminar(p)} className="au-btnDanger">🗑 Eliminar</button>
+                  </div>
+                </article>
+              ))}
+              {!productos.length && (
+                <div className="au-empty" style={{ gridColumn: "1 / -1" }}>No hay productos</div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

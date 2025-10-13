@@ -124,6 +124,7 @@ export default function AdminUsuarios() {
   return (
     <div className="au-layout">
 
+
       <NavbarAdm />
 
       <section className="au-main">

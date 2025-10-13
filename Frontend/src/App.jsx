@@ -11,6 +11,8 @@ import Footer from './Components/Footer';
 import NavbarAdm from './Components/Administradores/NavbarAdm';
 import PreciosDiarios from './Components/Agricultores/PreciosDiarios';
 import ProductosAdmin from './Components/Administradores/ProductosAdmin';
+import MunicipiosAdm from './Components/Administradores/MunicipiosAdm';
+
 function App() {
     return (
         <Router>
@@ -28,9 +30,15 @@ function App() {
                         </ProtectedRoute>
                     } />
 
-                    <Route path="/ProductosAdmin" element={
+                    <Route path="/Admin/Productos" element={
                         <ProtectedRoute allowedRoles={['ADMIN']}>
                             <ProductosAdmin />
+                        </ProtectedRoute>
+                    } />
+
+                    <Route path="/Admin/Municipios" element={
+                        <ProtectedRoute allowedRoles={['ADMIN']}>
+                            <MunicipiosAdm />
                         </ProtectedRoute>
                     } />
 

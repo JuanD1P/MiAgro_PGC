@@ -22,7 +22,7 @@ export default function NavbarAdm() {
         </NavLink>
 
         <NavLink
-          to="/Admin/municipios"
+          to="/Admin/Municipios"
           className={({ isActive }) =>
             "au-navItem" + (isActive ? " au-navItem--active" : "")
           }
@@ -31,7 +31,7 @@ export default function NavbarAdm() {
         </NavLink>
 
         <NavLink
-          to="/Admin/productos"
+          to="/Admin/Productos"
           className={({ isActive }) =>
             "au-navItem" + (isActive ? " au-navItem--active" : "")
           }

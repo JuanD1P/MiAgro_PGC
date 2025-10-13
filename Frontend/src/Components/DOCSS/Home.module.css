@@ -351,3 +351,39 @@
 @media (prefers-reduced-motion: reduce){
   .slide,.img,.feature,.btnPrimary,.btnSecondary,.dot,.ctaStart{ transition:none !important; }
 }
+.loaderScreen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  height: 100vh;
+  width: 100%;
+
+  color: #064e3b;
+}
+
+.loaderSpinner {
+  width: 44px;
+  height: 44px;
+  border: 4px solid rgba(255,255,255,.6);
+  border-top-color: #064e3b;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+  box-shadow: 0 0 0 6px rgba(255,255,255,.25);
+}
+
+.loaderText {
+  font-weight: 700;
+  letter-spacing: .2px;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: .7; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-2px); }
+}

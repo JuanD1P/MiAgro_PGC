@@ -3,31 +3,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Calendar, BarChart3, CloudSun, Leaf } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import styles from "./DOCSS/Home.module.css";
-import INICIO_LOGO from "../ImagenesP/ImagenesInicio/logoMiAgro.png";
-import Slide1 from "../ImagenesP/ImagenesInicio/Madrid.jpeg";
-import Slide2 from "../ImagenesP/ImagenesInicio/Soacha.jpg";
-import Slide3 from "../ImagenesP/ImagenesInicio/Mosquera.jpg";
-import Slide4 from "../ImagenesP/ImagenesInicio/Funza.jpg";
-import Slide5 from "../ImagenesP/ImagenesInicio/Faca.jpg";
-import Slide6 from "../ImagenesP/ImagenesInicio/Elrosal.jpg";
-import Slide7 from "../ImagenesP/ImagenesInicio/Subachoque.jpeg";
-import Slide8 from "../ImagenesP/ImagenesInicio/Zipacon.jpg";
-import Slide9 from "../ImagenesP/ImagenesInicio/cota.webp";
-import Slide10 from "../ImagenesP/ImagenesInicio/tenjo.jpg";
-import Slide11 from "../ImagenesP/ImagenesInicio/tabio.jpeg";
-import Slide12 from "../ImagenesP/ImagenesInicio/cajica.jpg";
-import Slide13 from "../ImagenesP/ImagenesInicio/chia.jpg";
-import Slide14 from "../ImagenesP/ImagenesInicio/tocancipa.jpeg";
-import Slide15 from "../ImagenesP/ImagenesInicio/gachancipa.jpg";
-import Slide16 from "../ImagenesP/ImagenesInicio/zipaquira.jpg";
-import Slide17 from "../ImagenesP/ImagenesInicio/sopo.webp";
-import Slide18 from "../ImagenesP/ImagenesInicio/nemocon.webp";
-import Slide19 from "../ImagenesP/ImagenesInicio/suesca.jpg";
-import Slide20 from "../ImagenesP/ImagenesInicio/sesquile.jpeg";
-import Slide21 from "../ImagenesP/ImagenesInicio/la calera.jpg";
-import Slide22 from "../ImagenesP/ImagenesInicio/guatavita.jpeg";
-import Slide23 from "../ImagenesP/ImagenesInicio/guasca.jpeg";
-import Slide24 from "../ImagenesP/ImagenesInicio/bojaca.jpg";
+import { db } from "../firebase/client";
+import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import CultivoA from "../ImagenesP/ImagenesInicio/CultivoA.jpeg";
 import CultivoB from "../ImagenesP/ImagenesInicio/CultivoB.jpg";
 import PaisajeA from "../ImagenesP/ImagenesInicio/PaisajeA.jpg";
@@ -37,57 +14,59 @@ import MercadoB from "../ImagenesP/ImagenesInicio/MercadoB.jpg";
 
 export default function Home() {
   const navigate = useNavigate();
+  const [municipios, setMunicipios] = useState([]);
+  const [idx, setIdx] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const timerRef = useRef(null);
+  const hoveringRef = useRef(false);
 
   useEffect(() => {
     localStorage.clear();
     window.dispatchEvent(new Event("auth-changed"));
   }, []);
 
-  const slides = useMemo(
-    () => [
-      { src: Slide1, title: "Madrid, Cundinamarca" },
-      { src: Slide2, title: "Soacha, Cundinamarca" },
-      { src: Slide3, title: "Mosquera, Cundinamarca" },
-      { src: Slide4, title: "Funza, Cundinamarca" },
-      { src: Slide5, title: "Facatativá, Cundinamarca" },
-      { src: Slide6, title: "El Rosal, Cundinamarca" },
-      { src: Slide7, title: "Subachoque, Cundinamarca" },
-      { src: Slide8, title: "Zipacón, Cundinamarca" },
-      { src: Slide9, title: "Cota, Cundinamarca" },
-      { src: Slide10, title: "Tenjo, Cundinamarca" },
-      { src: Slide11, title: "Tabio, Cundinamarca" },
-      { src: Slide12, title: "Cajicá, Cundinamarca" },
-      { src: Slide13, title: "Chía, Cundinamarca" },
-      { src: Slide14, title: "Tocancipá, Cundinamarca" },
-      { src: Slide15, title: "Gachancipá, Cundinamarca" },
-      { src: Slide16, title: "Zipaquirá, Cundinamarca" },
-      { src: Slide17, title: "Sopó, Cundinamarca" },
-      { src: Slide18, title: "Nemocón, Cundinamarca" },
-      { src: Slide19, title: "Suesca, Cundinamarca" },
-      { src: Slide20, title: "Sesquilé, Cundinamarca" },
-      { src: Slide21, title: "La Calera, Cundinamarca" },
-      { src: Slide22, title: "Guatavita, Cundinamarca" },
-      { src: Slide23, title: "Guasca, Cundinamarca" },
-      { src: Slide24, title: "Bojacá, Cundinamarca" }
-    ],
-    []
-  );
+  useEffect(() => {
+    const q = query(collection(db, "municipios"), orderBy("creadoEn", "desc"));
+    const unsub = onSnapshot(q, (snap) => {
+      const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setMunicipios(rows.filter((x) => x.url && x.municipio && x.departamento));
+      setLoading(false);
+    });
+    return unsub;
+  }, []);
 
-  const [idx, setIdx] = useState(0);
-  const timerRef = useRef(null);
-  const hoveringRef = useRef(false);
+  const slides = useMemo(
+    () =>
+      municipios.map((m) => ({
+        src: m.url,
+        title: `${m.municipio}, ${m.departamento}`,
+      })),
+    [municipios]
+  );
 
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
+    if (!slides.length) return;
     timerRef.current = setInterval(() => {
       if (!hoveringRef.current) setIdx((i) => (i + 1) % slides.length);
     }, 3200);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, [slides.length]);
 
   const onMouseEnter = () => (hoveringRef.current = true);
   const onMouseLeave = () => (hoveringRef.current = false);
   const currentSlide = slides[idx] || { title: "" };
+
+  if (loading) {
+    return (
+      <div className={styles.loaderScreen}>
+        <div className={styles.loaderSpinner}></div>
+        <p className={styles.loaderText}>Cargando información…</p>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.app}>
@@ -111,23 +90,28 @@ export default function Home() {
           <p>
             Nuestro objetivo es ayudarte a sembrar con <strong className={styles.accentStrong}>inteligencia</strong>, reducir riesgos y aumentar tu <strong className={styles.accentStrong}>rentabilidad</strong>, siempre cuidando la tierra y el futuro de nuestras comunidades.
           </p>
-
         </div>
 
         <div className={styles.imageCol}>
           <div className={styles.carousel} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
             <div className={styles.frame}>
-              {slides.map((s, i) => (
-                <img
-                  key={i}
-                  src={s.src}
-                  className={`${styles.slide} ${i === idx ? styles.active : ""}`}
-                  alt={s.title}
-                  loading={i === 0 ? "eager" : "lazy"}
-                  draggable={false}
-                  onError={(e) => { e.currentTarget.style.display = "none"; }}
-                />
-              ))}
+              {slides.length ? (
+                slides.map((s, i) => (
+                  <img
+                    key={i}
+                    src={s.src}
+                    className={`${styles.slide} ${i === idx ? styles.active : ""}`}
+                    alt={s.title}
+                    loading={i === 0 ? "eager" : "lazy"}
+                    draggable={false}
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                ))
+              ) : (
+                <div className={styles.empty}>Aún no hay municipios registrados</div>
+              )}
               <div className={styles.caption} aria-live="polite">{currentSlide.title}</div>
               <div className={styles.gradientMask} aria-hidden="true" />
             </div>
@@ -218,7 +202,6 @@ export default function Home() {
           </button>
         </div>
       </section>
-
     </div>
   );
 }
