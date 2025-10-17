@@ -1,17 +1,14 @@
 // Backend/utils/ai.js
-import OpenAI from "openai";
+import fs from "node:fs";
 
-/* ========= Env seguro ========= */
-const OPENAI_API_KEY = (process.env.OPENAI_API_KEY || "").replace(/\s/g, ""); 
+const OPENAI_API_KEY = (process.env.OPENAI_API_KEY || "").replace(/\s/g, "");
 const OPENAI_PROJECT = (process.env.OPENAI_PROJECT || "").trim();
-
 
 function mask(s, keep = 6) {
   if (!s) return "(vacío)";
   return s.length <= keep * 2 ? "***" : s.slice(0, keep) + "…" + s.slice(-keep);
 }
 
-// Logs solo para diagnóstico (no exponen la clave completa)
 console.log("🔑 OPENAI_API_KEY:", OPENAI_API_KEY.startsWith("sk-proj-") ? "sk-proj-…" : mask(OPENAI_API_KEY));
 console.log("🧩 OPENAI_PROJECT:", OPENAI_PROJECT ? mask(OPENAI_PROJECT) : "(sin project)");
 
@@ -22,14 +19,6 @@ if (OPENAI_API_KEY.startsWith("sk-proj-") && !OPENAI_PROJECT) {
   console.error("❌ Usas clave de proyecto (sk-proj-…) pero falta OPENAI_PROJECT (proj_…).");
 }
 
-/* ========= Cliente OpenAI ========= */
-export const openai = new OpenAI({
-  apiKey: OPENAI_API_KEY,
-  // El SDK requiere 'project' cuando usas claves sk-proj-…
-  project: OPENAI_PROJECT || undefined,
-});
-
-/* ========= Prompt del sistema ========= */
 const SYSTEM_PROMPT_FALLBACK = `
 Eres **MiAgro IA**, un asistente agrícola colombiano.
 
@@ -70,7 +59,6 @@ EJECUCIÓN
 - Ajusta la recomendación a ese contexto; si falta, **pregunta**.
 `.trim();
 
-/* ========= Builder de mensajes ========= */
 function buildMessages({ history = [], userText, context = {} }) {
   const sysFromEnv = (process.env.MIAGRO_SYSTEM_PROMPT || "").trim();
   const systemPrompt = [
@@ -78,69 +66,78 @@ function buildMessages({ history = [], userText, context = {} }) {
     context?.municipio ? `\nContexto: Municipio: ${context.municipio}.` : "",
     context?.departamento ? ` Departamento: ${context.departamento}.` : "",
     context?.cultivo ? ` Cultivo: ${context.cultivo}.` : "",
-  ]
-    .join("")
-    .trim();
+  ].join("").trim();
 
-  const messages = [];
+  const msgs = [];
   if (history.length && history[0]?.role === "system") {
-    messages.push(...history);
+    msgs.push(...history);
   } else {
-    messages.push({ role: "system", content: systemPrompt });
-    messages.push(...history);
+    msgs.push({ role: "system", content: systemPrompt });
+    msgs.push(...history);
   }
-  if (userText) messages.push({ role: "user", content: userText });
-
-  const MAX_MSGS = 24;
-  return messages.slice(-MAX_MSGS);
+  if (userText) msgs.push({ role: "user", content: userText });
+  return msgs.slice(-24);
 }
 
-/* ========= Llamada al modelo con manejo de errores ========= */
 export async function askOpenAI(
   messagesOrParams,
   opts = { temperature: 0.3, model: "gpt-4o-mini", max_tokens: 900 }
 ) {
   if (!OPENAI_API_KEY) {
     const e = new Error("Falta OPENAI_API_KEY.");
-    e.status = 500;
-    throw e;
+    e.status = 500; throw e;
   }
   if (OPENAI_API_KEY.startsWith("sk-proj-") && !OPENAI_PROJECT) {
     const e = new Error("Falta OPENAI_PROJECT para clave de proyecto.");
-    e.status = 500;
-    throw e;
+    e.status = 500; throw e;
   }
 
-  let messages;
-  if (Array.isArray(messagesOrParams)) {
-    const hasSystem = messagesOrParams[0]?.role === "system";
-    messages = hasSystem
-      ? messagesOrParams
-      : [{ role: "system", content: SYSTEM_PROMPT_FALLBACK }, ...messagesOrParams];
-  } else {
-    messages = buildMessages(messagesOrParams || {});
+  const messages = Array.isArray(messagesOrParams)
+    ? (messagesOrParams[0]?.role === "system"
+        ? messagesOrParams
+        : [{ role: "system", content: SYSTEM_PROMPT_FALLBACK }, ...messagesOrParams])
+    : buildMessages(messagesOrParams || {});
+
+  // === Llamada directa con fetch, enviando OpenAI-Project si aplica ===
+  const headers = {
+    "Authorization": `Bearer ${OPENAI_API_KEY}`,
+    "Content-Type": "application/json",
+  };
+  if (OPENAI_API_KEY.startsWith("sk-proj-") && OPENAI_PROJECT) {
+    headers["OpenAI-Project"] = OPENAI_PROJECT;
   }
 
+  const body = {
+    model: opts?.model ?? "gpt-4o-mini",
+    temperature: opts?.temperature ?? 0.3,
+    max_tokens: opts?.max_tokens ?? 900,
+    messages,
+  };
+
+  let resp;
   try {
-    const resp = await openai.chat.completions.create({
-      model: opts?.model ?? "gpt-4o-mini",
-      temperature: opts?.temperature ?? 0.3,
-      max_tokens: opts?.max_tokens ?? 900,
-      messages,
+    resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
     });
-    return resp.choices?.[0]?.message?.content?.trim() || "";
-  } catch (err) {
-    const status = err?.status || err?.response?.status;
-    // Sanitiza el error para no exponer mensajes de OpenAI al frontend
-    if (status === 401 || status === 403) {
+  } catch {
+    const e = new Error("Error de red al llamar a OpenAI.");
+    e.status = 502; throw e;
+  }
+
+  if (!resp.ok) {
+    // 401/403 → credenciales mal
+    if (resp.status === 401 || resp.status === 403) {
       const e = new Error("Credenciales de OpenAI inválidas o faltantes.");
-      e.status = 502;
-      throw e;
+      e.status = 502; throw e;
     }
     const e = new Error("Error llamando al modelo de OpenAI.");
-    e.status = 502;
-    throw e;
+    e.status = 502; throw e;
   }
+
+  const data = await resp.json();
+  return data?.choices?.[0]?.message?.content?.trim() || "";
 }
 
 export { buildMessages };
