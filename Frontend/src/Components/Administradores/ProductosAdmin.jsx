@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { db } from "../../firebase/client";
 import { collection, addDoc, onSnapshot, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
@@ -26,6 +26,48 @@ function ToastHost({ toasts, onClose }) {
     </div>
   );
 }
+
+const RangeFree = React.memo(function RangeFree({
+  label, unit, placeholderMin, placeholderMax,
+  minValue, maxValue, onMinChange, onMaxChange, maxLen = 4
+}) {
+  return (
+    <div className="au-field">
+      <div className="au-label">
+        {label} {unit ? <span className="au-muted">({unit})</span> : null}
+      </div>
+      <div className="au-range">
+        <input
+          type="text"
+          className="au-input"
+          placeholder={placeholderMin || "Mín."}
+          value={minValue}
+          onChange={(e)=>onMinChange(e.target.value)}
+          autoComplete="off"
+          spellCheck={false}
+          inputMode="numeric"
+          maxLength={maxLen}
+          onKeyDown={(e)=>{ if (e.key === "Enter") e.preventDefault(); e.stopPropagation(); }}
+          onKeyUp={(e)=>{ e.stopPropagation(); }}
+        />
+        <span className="au-rangeSep">a</span>
+        <input
+          type="text"
+          className="au-input"
+          placeholder={placeholderMax || "Máx."}
+          value={maxValue}
+          onChange={(e)=>onMaxChange(e.target.value)}
+          autoComplete="off"
+          spellCheck={false}
+          inputMode="numeric"
+          maxLength={maxLen}
+          onKeyDown={(e)=>{ if (e.key === "Enter") e.preventDefault(); e.stopPropagation(); }}
+          onKeyUp={(e)=>{ e.stopPropagation(); }}
+        />
+      </div>
+    </div>
+  );
+});
 
 export default function ProductosAdmin() {
   const [toasts, setToasts] = useState([]);
@@ -60,14 +102,14 @@ export default function ProductosAdmin() {
     epocas: []
   });
 
+  const [rangos, setRangos] = useState({
+    tempMin: "", tempMax: "",
+    humMin:  "", humMax:  "",
+    altMin:  "", altMax:  ""
+  });
+
   const inputRef = useRef(null);
   const listRef = useRef(null);
-
-  const refs = useRef({});
-  const getRef = (name) => {
-    if (!refs.current[name]) refs.current[name] = React.createRef();
-    return refs.current[name];
-  };
 
   useEffect(() => {
     const unsub = onSnapshot(
@@ -121,12 +163,12 @@ export default function ProductosAdmin() {
   };
 
   const validarAntesDeGuardar = () => {
-    const tMin = parseMaybe(getRef("tempMin").current?.value ?? "");
-    const tMax = parseMaybe(getRef("tempMax").current?.value ?? "");
-    const hMin = parseMaybe(getRef("humMin").current?.value ?? "");
-    const hMax = parseMaybe(getRef("humMax").current?.value ?? "");
-    const aMin = parseMaybe(getRef("altMin").current?.value ?? "");
-    const aMax = parseMaybe(getRef("altMax").current?.value ?? "");
+    const tMin = parseMaybe(rangos.tempMin);
+    const tMax = parseMaybe(rangos.tempMax);
+    const hMin = parseMaybe(rangos.humMin);
+    const hMax = parseMaybe(rangos.humMax);
+    const aMin = parseMaybe(rangos.altMin);
+    const aMax = parseMaybe(rangos.altMax);
     const ciclo = parseMaybe(agro.cicloDias);
 
     const errors = [];
@@ -137,12 +179,12 @@ export default function ProductosAdmin() {
 
     const inRange = (n, lo, hi) => n >= lo && n <= hi;
 
-    if (getRef("tempMin").current?.value !== "" && Number.isNaN(tMin)) errors.push("Temperatura mínima inválida");
-    if (getRef("tempMax").current?.value !== "" && Number.isNaN(tMax)) errors.push("Temperatura máxima inválida");
-    if (getRef("humMin").current?.value  !== "" && Number.isNaN(hMin))  errors.push("Humedad mínima inválida");
-    if (getRef("humMax").current?.value  !== "" && Number.isNaN(hMax))  errors.push("Humedad máxima inválida");
-    if (getRef("altMin").current?.value  !== "" && Number.isNaN(aMin))  errors.push("Altitud mínima inválida");
-    if (getRef("altMax").current?.value  !== "" && Number.isNaN(aMax))  errors.push("Altitud máxima inválida");
+    if (rangos.tempMin !== "" && Number.isNaN(tMin)) errors.push("Temperatura mínima inválida");
+    if (rangos.tempMax !== "" && Number.isNaN(tMax)) errors.push("Temperatura máxima inválida");
+    if (rangos.humMin  !== "" && Number.isNaN(hMin))  errors.push("Humedad mínima inválida");
+    if (rangos.humMax  !== "" && Number.isNaN(hMax))  errors.push("Humedad máxima inválida");
+    if (rangos.altMin  !== "" && Number.isNaN(aMin))  errors.push("Altitud mínima inválida");
+    if (rangos.altMax  !== "" && Number.isNaN(aMax))  errors.push("Altitud máxima inválida");
     if (agro.cicloDias !== "" && Number.isNaN(ciclo)) errors.push("Ciclo de días inválido");
 
     if (!Number.isNaN(tMin ?? NaN) && !inRange(tMin, -50, 80)) errors.push("Temperatura mínima fuera de -50 a 80 °C");
@@ -198,13 +240,8 @@ export default function ProductosAdmin() {
         agro: docAgro
       });
       notify.success("Producto creado");
-      if (refs.current.tempMin?.current) refs.current.tempMin.current.value = "";
-      if (refs.current.tempMax?.current) refs.current.tempMax.current.value = "";
-      if (refs.current.humMin?.current)  refs.current.humMin.current.value  = "";
-      if (refs.current.humMax?.current)  refs.current.humMax.current.value  = "";
-      if (refs.current.altMin?.current)  refs.current.altMin.current.value  = "";
-      if (refs.current.altMax?.current)  refs.current.altMax.current.value  = "";
       setAgro({ cicloDias:"", epocas:[] });
+      setRangos({ tempMin:"", tempMax:"", humMin:"", humMax:"", altMin:"", altMax:"" });
       setNombre(""); setTipo("");
       setFile(null); setPreview("");
       setFiltro(""); setOpenList(false);
@@ -248,40 +285,12 @@ export default function ProductosAdmin() {
     </div>
   );
 
-  const RangeFree = ({ label, minName, maxName, unit, placeholderMin, placeholderMax }) => (
-    <div className="au-field">
-      <div className="au-label">
-        {label} {unit ? <span className="au-muted">({unit})</span> : null}
-      </div>
-      <div className="au-range">
-        <input
-          type="text"
-          className="au-input"
-          placeholder={placeholderMin || "Mín."}
-          ref={getRef(minName)}
-          autoComplete="off"
-          spellCheck={false}
-          inputMode="text"
-          name={minName}
-          onKeyDown={(e)=>e.stopPropagation()}
-          onKeyUp={(e)=>e.stopPropagation()}
-        />
-        <span className="au-rangeSep">a</span>
-        <input
-          type="text"
-          className="au-input"
-          placeholder={placeholderMax || "Máx."}
-          ref={getRef(maxName)}
-          autoComplete="off"
-          spellCheck={false}
-          inputMode="text"
-          name={maxName}
-          onKeyDown={(e)=>e.stopPropagation()}
-          onKeyUp={(e)=>e.stopPropagation()}
-        />
-      </div>
-    </div>
-  );
+  const handleTempMin = useCallback((v)=>setRangos(s=>({...s,tempMin:v})),[]);
+  const handleTempMax = useCallback((v)=>setRangos(s=>({...s,tempMax:v})),[]);
+  const handleHumMin  = useCallback((v)=>setRangos(s=>({...s,humMin:v})),[]);
+  const handleHumMax  = useCallback((v)=>setRangos(s=>({...s,humMax:v})),[]);
+  const handleAltMin  = useCallback((v)=>setRangos(s=>({...s,altMin:v})),[]);
+  const handleAltMax  = useCallback((v)=>setRangos(s=>({...s,altMax:v})),[]);
 
   const eliminar = async (p) => {
     if (!confirm(`Eliminar "${p.nombre}"?`)) return;
@@ -421,9 +430,39 @@ export default function ProductosAdmin() {
                       <div className="section-sub">Rangos recomendados</div>
                     </div>
                     <div className="grid-2">
-                      <RangeFree label="Temperatura ideal" minName="tempMin" maxName="tempMax" unit="°C" placeholderMin="18" placeholderMax="28" />
-                      <RangeFree label="Humedad relativa"  minName="humMin"  maxName="humMax"  unit="%"  placeholderMin="50" placeholderMax="80" />
-                      <RangeFree label="Altitud"           minName="altMin"  maxName="altMax"  unit="m s. n. m." placeholderMin="0" placeholderMax="2600" />
+                      <RangeFree
+                        label="Temperatura ideal"
+                        unit="°C"
+                        placeholderMin="18"
+                        placeholderMax="28"
+                        minValue={rangos.tempMin}
+                        maxValue={rangos.tempMax}
+                        onMinChange={handleTempMin}
+                        onMaxChange={handleTempMax}
+                        maxLen={4}
+                      />
+                      <RangeFree
+                        label="Humedad relativa"
+                        unit="%"
+                        placeholderMin="50"
+                        placeholderMax="80"
+                        minValue={rangos.humMin}
+                        maxValue={rangos.humMax}
+                        onMinChange={handleHumMin}
+                        onMaxChange={handleHumMax}
+                        maxLen={4}
+                      />
+                      <RangeFree
+                        label="Altitud"
+                        unit="m s. n. m."
+                        placeholderMin="0"
+                        placeholderMax="2600"
+                        minValue={rangos.altMin}
+                        maxValue={rangos.altMax}
+                        onMinChange={handleAltMin}
+                        onMaxChange={handleAltMax}
+                        maxLen={4}
+                      />
                       <div className="au-field">
                         <div className="au-label">Ciclo (días a cosecha)</div>
                         <input
@@ -434,10 +473,11 @@ export default function ProductosAdmin() {
                           onChange={(e)=>setAgro(s=>({...s, cicloDias:e.target.value}))}
                           autoComplete="off"
                           spellCheck={false}
-                          inputMode="text"
+                          inputMode="numeric"
+                          maxLength={4}
                           name="cicloDias"
-                          onKeyDown={(e)=>e.stopPropagation()}
-                          onKeyUp={(e)=>e.stopPropagation()}
+                          onKeyDown={(e)=>{ if (e.key === "Enter") e.preventDefault(); e.stopPropagation(); }}
+                          onKeyUp={(e)=>{ e.stopPropagation(); }}
                         />
                       </div>
                     </div>
