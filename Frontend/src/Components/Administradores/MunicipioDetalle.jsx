@@ -23,8 +23,7 @@ export default function MunicipioDetalle() {
   const navigate = useNavigate();
 
   const [toasts, setToasts] = useState([]);
-  const toast = (m, o = {}) =>
-    setToasts((t) => [...t, { id: crypto.randomUUID(), message: m, ...o }]);
+  const toast = (m, o = {}) => setToasts((t) => [...t, { id: crypto.randomUUID(), message: m, ...o }]);
   const closeToast = (id) => setToasts((t) => t.filter((x) => x.id !== id));
   const notify = {
     success: (msg, opts) => toast(msg, { title: "Listo", icon: "✅", variant: "success", ...opts }),
@@ -39,8 +38,7 @@ export default function MunicipioDetalle() {
   const [buscador, setBuscador] = useState("");
   const [editImgLoading, setEditImgLoading] = useState(false);
 
-  const guessIconField = (p) =>
-    p.iconUrl || p.url || p.imagen || p.image || p.icon || p.emoji || "";
+  const guessIconField = (p) => p.iconUrl || p.url || p.imagen || p.image || p.icon || p.emoji || "";
   const guessNameField = (p) => p.nombre || p.name || p.titulo || "";
   const looksLikeUrl = (s) => typeof s === "string" && /^https?:\/\//i.test(s);
   const looksLikeDataUri = (s) => typeof s === "string" && /^data:image\//i.test(s);
@@ -48,8 +46,7 @@ export default function MunicipioDetalle() {
   const resolveBucketPath = (p) => {
     if (p.bucket && p.path) return { bucket: p.bucket, path: p.path };
     if (p.bucketName && p.objectPath) return { bucket: p.bucketName, path: p.objectPath };
-    if (p.icon && typeof p.icon === "object" && p.icon.bucket && p.icon.path)
-      return { bucket: p.icon.bucket, path: p.icon.path };
+    if (p.icon && typeof p.icon === "object" && p.icon.bucket && p.icon.path) return { bucket: p.icon.bucket, path: p.icon.path };
     return null;
   };
   const resolveIcon = async (p) => {
@@ -58,23 +55,17 @@ export default function MunicipioDetalle() {
     if (looksLikeEmoji(raw)) return raw;
     const bp = resolveBucketPath(p);
     if (bp) {
-      const r = await supabase.storage
-        .from(bp.bucket)
-        .createSignedUrl(bp.path, 60 * 60 * 24 * 365 * 5);
+      const r = await supabase.storage.from(bp.bucket).createSignedUrl(bp.path, 60 * 60 * 24 * 365 * 5);
       if (!r.error) return r.data.signedUrl;
     }
     return "";
   };
   const hydrateProducts = async (items) => {
-    const arr = await Promise.all(
-      items.map(async (p) => {
-        const icon = await resolveIcon(p);
-        return { ...p, _displayIcon: icon, _name: guessNameField(p) };
-      })
-    );
-    arr.sort((a, b) =>
-      String(a._name || "").localeCompare(String(b._name || ""), "es")
-    );
+    const arr = await Promise.all(items.map(async (p) => {
+      const icon = await resolveIcon(p);
+      return { ...p, _displayIcon: icon, _name: guessNameField(p) };
+    }));
+    arr.sort((a, b) => String(a._name || "").localeCompare(String(b._name || ""), "es"));
     return arr;
   };
 
@@ -91,11 +82,7 @@ export default function MunicipioDetalle() {
       }
       setMun({ id: snap.id, ...snap.data() });
 
-      unsubMun = onSnapshot(
-        ref,
-        (d) => setMun({ id: d.id, ...d.data() }),
-        (e) => notify.error(e.message || "Error leyendo municipio")
-      );
+      unsubMun = onSnapshot(ref, (d) => setMun({ id: d.id, ...d.data() }), (e) => notify.error(e.message || "Error leyendo municipio"));
 
       unsubCat = onSnapshot(
         collection(db, "productos"),
@@ -132,8 +119,7 @@ export default function MunicipioDetalle() {
     try {
       setEditImgLoading(true);
       const ext = f.name.split(".").pop() || "bin";
-      const safe = (s) =>
-        s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-");
+      const safe = (s) => s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-");
       const path = `${safe(mun.departamento)}/${safe(mun.municipio)}/cover-${Date.now()}.${ext}`;
       const up = await supabase.storage.from("municipios").upload(path, f, {
         cacheControl: "3600",
@@ -142,9 +128,7 @@ export default function MunicipioDetalle() {
       });
       if (up.error) throw up.error;
 
-      const signed = await supabase.storage
-        .from("municipios")
-        .createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
+      const signed = await supabase.storage.from("municipios").createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
       if (signed.error) throw signed.error;
 
       await updateDoc(doc(db, "municipios", mun.id), {
@@ -230,9 +214,7 @@ export default function MunicipioDetalle() {
               <span className="au-mdet-crumbSep">/</span>
               <span className="au-mdet-crumbCur">{mun ? mun.municipio : "Cargando…"}</span>
             </div>
-            <h1 className="au-mdet-title">
-              {mun ? `${mun.departamento} / ${mun.municipio}` : "Cargando…"}
-            </h1>
+            <h1 className="au-mdet-title">{mun ? `${mun.departamento} / ${mun.municipio}` : "Cargando…"}</h1>
             <div className="au-mdet-stats">
               <span className="au-chip">Productos: {prodsAsociados.length}</span>
               <span className="au-chip">Catálogo: {catalogoProds.length}</span>
@@ -243,18 +225,12 @@ export default function MunicipioDetalle() {
         <div className="au-mdet-grid">
           <div className="au-mdet-left">
             <div className="au-mdet-cover">
-              {mun?.url ? (
-                <img src={mun.url} alt={mun?.municipio || ""} className="au-mdet-coverImg" />
-              ) : (
-                <div className="au-mdet-coverEmpty">Sin imagen</div>
-              )}
-
+              {mun?.url ? <img src={mun.url} alt={mun?.municipio || ""} className="au-mdet-coverImg" /> : <div className="au-mdet-coverEmpty">Sin imagen</div>}
               <label className="au-mdet-fab">
                 <input type="file" accept="image/*" onChange={cambiarImagenMunicipio} />
                 <span className="au-mdet-fabIc">{editImgLoading ? "…" : "✏️"}</span>
                 <span className="au-mdet-fabTx">{editImgLoading ? "Actualizando" : "Cambiar"}</span>
               </label>
-
               <div className="au-mdet-coverOverlay" />
             </div>
 
@@ -301,7 +277,6 @@ export default function MunicipioDetalle() {
 
               <div className="au-mdet-tags">
                 <button onClick={() => setBuscador("")} className={`au-mdet-tag ${buscador === "" ? "is-active" : ""}`}>Todos</button>
-
               </div>
 
               <div className="au-mdet-catGrid">
@@ -320,9 +295,7 @@ export default function MunicipioDetalle() {
                           <span className="au-emoji">🧩</span>
                         )}
                       </div>
-                      <div className="au-mdet-cardName" title={p._name || "Producto"}>
-                        {p._name || "Sin nombre"}
-                      </div>
+                      <div className="au-mdet-cardName" title={p._name || "Producto"}>{p._name || "Sin nombre"}</div>
                       <button
                         onClick={() => asociarProducto(p)}
                         disabled={asociado}
@@ -333,9 +306,7 @@ export default function MunicipioDetalle() {
                     </div>
                   );
                 })}
-                {!filtrados.length && (
-                  <div className="au-listEmpty au-gridFull">No hay productos en el catálogo</div>
-                )}
+                {!filtrados.length && <div className="au-listEmpty au-gridFull">No hay productos en el catálogo</div>}
               </div>
             </div>
 

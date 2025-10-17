@@ -18,7 +18,7 @@ export default function NavbarAdm() {
             "au-navItem" + (isActive ? " au-navItem--active" : "")
           }
         >
-          Gestion de usuarios.
+          Gestión de usuarios
         </NavLink>
 
         <NavLink
@@ -27,7 +27,7 @@ export default function NavbarAdm() {
             "au-navItem" + (isActive ? " au-navItem--active" : "")
           }
         >
-          Gestion de municipios
+          Gestión de municipios
         </NavLink>
 
         <NavLink
@@ -36,7 +36,7 @@ export default function NavbarAdm() {
             "au-navItem" + (isActive ? " au-navItem--active" : "")
           }
         >
-          Gestion de productos
+          Gestión de productos
         </NavLink>
       </nav>
     </aside>
