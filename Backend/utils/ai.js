@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 
 if (!process.env.OPENAI_API_KEY) {
-  console.error("Falta OPENAI_API_KEY en .env");
+  console.error("Falta OPENAI_API_KEY en el entorno (no en el repo).");
 }
 
 const SYSTEM_PROMPT_FALLBACK = `
@@ -32,7 +32,7 @@ FORMATO DE SALIDA
 5) **Fuentes** (solo cuando uses información externa específica).
 
 TABLAS (cuando aplique)
-- Usa encabezados claros y pocas columnas. Ej.: `| Práctica | Cuándo | Nota |`.
+- Usa encabezados claros y pocas columnas. Ej.: \`| Práctica | Cuándo | Nota |\`.
 
 REGLAS
 - No compartas información que ponga en riesgo a personas/animales/ambiente.
@@ -42,7 +42,6 @@ REGLAS
 EJECUCIÓN
 - Antes de responder, identifica: **cultivo**, **ubicación**, **ventana temporal**, **objetivo**.
 - Ajusta la recomendación a ese contexto; si falta, **pregunta**.
-
 `.trim();
 
 export const openai = new OpenAI({
@@ -53,42 +52,31 @@ function buildMessages({ history = [], userText, context = {} }) {
   const sysFromEnv = (process.env.MIAGRO_SYSTEM_PROMPT || "").trim();
   const systemPrompt = [
     sysFromEnv || SYSTEM_PROMPT_FALLBACK,
-
     context?.municipio ? `\nContexto: Municipio: ${context.municipio}.` : "",
     context?.departamento ? ` Departamento: ${context.departamento}.` : "",
     context?.cultivo ? ` Cultivo: ${context.cultivo}.` : "",
-  ]
-    .join("")
-    .trim();
-
+  ].join("").trim();
 
   const messages = [];
   if (history.length && history[0]?.role === "system") {
-
     messages.push(...history);
   } else {
     messages.push({ role: "system", content: systemPrompt });
     messages.push(...history);
   }
 
-  if (userText) {
-    messages.push({ role: "user", content: userText });
-  }
+  if (userText) messages.push({ role: "user", content: userText });
 
   const MAX_MSGS = 24;
-  const trimmed = messages.slice(-MAX_MSGS);
-
-  return trimmed;
+  return messages.slice(-MAX_MSGS);
 }
 
 export async function askOpenAI(
   messagesOrParams,
   opts = { temperature: 0.3, model: "gpt-4o-mini", max_tokens: 900 }
 ) {
-
   let messages;
   if (Array.isArray(messagesOrParams)) {
-
     const hasSystem = messagesOrParams[0]?.role === "system";
     messages = hasSystem
       ? messagesOrParams
