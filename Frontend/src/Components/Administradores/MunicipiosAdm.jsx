@@ -7,7 +7,6 @@ import {
   deleteDoc,
   doc,
   serverTimestamp,
-  updateDoc,
 } from "firebase/firestore";
 import { supabase } from "../../supabase/client";
 import ToastStack from "../ToastStack";
@@ -15,6 +14,7 @@ import NavbarAdm from "./NavbarAdm.jsx";
 import "./DOCSS/Admin.css";
 import Swal from "sweetalert2";
 import "@sweetalert2/themes/borderless/borderless.css";
+import { useNavigate } from "react-router-dom";
 
 const RegistradosGrid = React.memo(function RegistradosGrid({
   items,
@@ -63,7 +63,6 @@ const RegistradosGrid = React.memo(function RegistradosGrid({
 });
 
 export default function MunicipiosAdm() {
-  // ---------------- TOASTS ----------------
   const [toasts, setToasts] = useState([]);
   const toast = (m, o = {}) =>
     setToasts((t) => [...t, { id: crypto.randomUUID(), message: m, ...o }]);
@@ -79,7 +78,6 @@ export default function MunicipiosAdm() {
       toast(msg, { title: "Info", icon: "ℹ️", variant: "info", ...opts }),
   };
 
-  // ------------- STATE PRINCIPAL -------------
   const [departamentos, setDepartamentos] = useState([]);
   const [municipiosApi, setMunicipiosApi] = useState([]);
   const [depSel, setDepSel] = useState("");
@@ -88,57 +86,10 @@ export default function MunicipiosAdm() {
   const [preview, setPreview] = useState("");
   const [loading, setLoading] = useState(false);
   const [municipios, setMunicipios] = useState([]);
-
-  // Modal
-  const [adminOpen, setAdminOpen] = useState(false);
-  const [munActivo, setMunActivo] = useState(null);
-  const [prodsAsociados, setProdsAsociados] = useState([]);
-  const [catalogoProds, setCatalogoProds] = useState([]);
-  const [buscador, setBuscador] = useState("");
-  const [editImgLoading, setEditImgLoading] = useState(false);
-
   const [dragOver, setDragOver] = useState(false);
   const [lightUI, setLightUI] = useState(false);
 
-  // ---------------- HELPERS ----------------
-  const guessIconField = (p) =>
-    p.iconUrl || p.url || p.imagen || p.image || p.icon || p.emoji || "";
-  const guessNameField = (p) => p.nombre || p.name || p.titulo || "";
-  const looksLikeUrl = (s) => typeof s === "string" && /^https?:\/\//i.test(s);
-  const looksLikeDataUri = (s) => typeof s === "string" && /^data:image\//i.test(s);
-  const looksLikeEmoji = (s) => typeof s === "string" && s.length <= 4;
-  const resolveBucketPath = (p) => {
-    if (p.bucket && p.path) return { bucket: p.bucket, path: p.path };
-    if (p.bucketName && p.objectPath) return { bucket: p.bucketName, path: p.objectPath };
-    if (p.icon && typeof p.icon === "object" && p.icon.bucket && p.icon.path)
-      return { bucket: p.icon.bucket, path: p.icon.path };
-    return null;
-  };
-  const resolveIcon = async (p) => {
-    const raw = guessIconField(p);
-    if (looksLikeUrl(raw) || looksLikeDataUri(raw)) return raw;
-    if (looksLikeEmoji(raw)) return raw;
-    const bp = resolveBucketPath(p);
-    if (bp) {
-      const r = await supabase.storage
-        .from(bp.bucket)
-        .createSignedUrl(bp.path, 60 * 60 * 24 * 365 * 5);
-      if (!r.error) return r.data.signedUrl;
-    }
-    return "";
-  };
-  const hydrateProducts = async (items) => {
-    const arr = await Promise.all(
-      items.map(async (p) => {
-        const icon = await resolveIcon(p);
-        return { ...p, _displayIcon: icon, _name: guessNameField(p) };
-      })
-    );
-    arr.sort((a, b) =>
-      String(a._name || "").localeCompare(String(b._name || ""), "es")
-    );
-    return arr;
-  };
+  const navigate = useNavigate();
 
   const safe = (s) =>
     s
@@ -148,7 +99,6 @@ export default function MunicipiosAdm() {
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-z0-9]+/g, "-");
 
-  // ------------- EFFECTS: Firestore + APIs -------------
   useEffect(() => {
     const unsub = onSnapshot(
       collection(db, "municipios"),
@@ -200,7 +150,6 @@ export default function MunicipiosAdm() {
     };
   }, [depSel]);
 
-  // ------------- MEMOS -------------
   const depObj = useMemo(
     () => departamentos.find((d) => String(d.id) === String(depSel)) || null,
     [departamentos, depSel]
@@ -230,7 +179,6 @@ export default function MunicipiosAdm() {
     [municipiosApi]
   );
 
-  // ------------- HANDLERS CREAR MUNICIPIO -------------
   const onFile = (e) => {
     const f = e.target.files?.[0] || null;
     setFile(f);
@@ -331,156 +279,11 @@ export default function MunicipiosAdm() {
     });
     if (result.isConfirmed) {
       notify.warn("Municipio eliminado");
-      if (munActivo?.id === m.id) {
-        setAdminOpen(false);
-        setMunActivo(null);
-        setProdsAsociados([]);
-        setCatalogoProds([]);
-        setBuscador("");
-      }
     }
   };
 
-  // ------------- MODAL: abrir y funciones internas -------------
-  const abrirAdmin = (m) => {
-    setMunActivo(m);
-    setAdminOpen(true);
-  };
+  const abrirAdmin = (m) => navigate(`/admin/municipios/${m.id}`);
 
-  // ⚠️ ESTA ERA LA FUNCIÓN QUE FALTABA
-  const cambiarImagenMunicipio = async (e) => {
-    const f = e.target.files?.[0] || null;
-    if (!f || !munActivo) return;
-    try {
-      setEditImgLoading(true);
-      const ext = f.name.split(".").pop() || "bin";
-      const path = `${safe(munActivo.departamento)}/${safe(
-        munActivo.municipio
-      )}/cover-${Date.now()}.${ext}`;
-
-      const up = await supabase.storage.from("municipios").upload(path, f, {
-        cacheControl: "3600",
-        contentType: f.type,
-        upsert: false,
-      });
-      if (up.error) throw up.error;
-
-      const signed = await supabase.storage
-        .from("municipios")
-        .createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
-      if (signed.error) throw signed.error;
-
-      await updateDoc(doc(db, "municipios", munActivo.id), {
-        url: signed.data.signedUrl,
-        actualizadoEn: serverTimestamp(),
-      });
-
-      setMunActivo((old) =>
-        old ? { ...old, url: signed.data.signedUrl } : old
-      );
-      notify.success("Imagen actualizada");
-    } catch (e2) {
-      notify.error(e2.message || "No se pudo actualizar la imagen");
-    } finally {
-      setEditImgLoading(false);
-      e.target.value = "";
-    }
-  };
-
-  useEffect(() => {
-    let unsubCat = null;
-    let unsubAsoc = null;
-    if (adminOpen && munActivo) {
-      unsubCat = onSnapshot(
-        collection(db, "productos"),
-        async (snap) => {
-          const base = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-          const hyd = await hydrateProducts(base);
-          setCatalogoProds(hyd);
-        },
-        (err) => notify.error(err.message || "Error al leer catálogo")
-      );
-      unsubAsoc = onSnapshot(
-        collection(db, "municipios", munActivo.id, "productos"),
-        async (snap) => {
-          const base = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-          const hyd = await hydrateProducts(base);
-          setProdsAsociados(hyd);
-        },
-        (err) => notify.error(err.message || "Error al leer productos asociados")
-      );
-    }
-    return () => {
-      if (typeof unsubCat === "function") unsubCat();
-      if (typeof unsubAsoc === "function") unsubAsoc();
-    };
-  }, [adminOpen, munActivo]);
-
-  const asociarProducto = async (p) => {
-    if (!munActivo) return;
-    const ya = prodsAsociados.some((x) => x.productId === p.id);
-    if (ya) return notify.warn("Este producto ya está asociado");
-    try {
-      await addDoc(collection(db, "municipios", munActivo.id, "productos"), {
-        productId: p.id,
-        nombre: p._name || p.nombre || "",
-        iconUrl: p._displayIcon || guessIconField(p) || "",
-        asociadoEn: serverTimestamp(),
-      });
-      notify.success("Producto asociado");
-    } catch (e) {
-      notify.error(e.message || "No se pudo asociar");
-    }
-  };
-
-  const eliminarProducto = async (p) => {
-    if (!munActivo) return;
-    const result = await Swal.fire({
-      title: "¿Eliminar producto asociado?",
-      html: `Quitarás <b>${p._name || p.nombre || "Producto"}</b> de este municipio.`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Sí, eliminar",
-      cancelButtonText: "Cancelar",
-      reverseButtons: true,
-      showLoaderOnConfirm: true,
-      buttonsStyling: false,
-      customClass: {
-        popup: "au-sw-popup",
-        title: "au-sw-title",
-        htmlContainer: "au-sw-text",
-        actions: "au-sw-actions",
-        confirmButton: "au-sw-confirm",
-        cancelButton: "au-sw-cancel",
-      },
-      preConfirm: async () => {
-        try {
-          await deleteDoc(doc(db, "municipios", munActivo.id, "productos", p.id));
-        } catch (e) {
-          Swal.showValidationMessage(
-            e?.message || "No se pudo eliminar el producto"
-          );
-          return false;
-        }
-      },
-      allowOutsideClick: () => !Swal.isLoading(),
-    });
-    if (result.isConfirmed) notify.warn("Producto eliminado");
-  };
-
-  // ------------- FILTROS CATÁLOGO -------------
-  const filtrados = useMemo(() => {
-    const q = buscador.trim().toLowerCase();
-    if (!q) return catalogoProds;
-    return catalogoProds.filter((p) =>
-      String(p._name || "").toLowerCase().includes(q)
-    );
-  }, [catalogoProds, buscador]);
-
-  const esAsociado = (prodId) =>
-    prodsAsociados.some((x) => x.productId === prodId);
-
-  // ------------- RENDER -------------
   return (
     <div className={`au-layout ${lightUI ? "is-light" : ""}`}>
       <NavbarAdm />
@@ -586,155 +389,6 @@ export default function MunicipiosAdm() {
           </div>
         </div>
       </section>
-
-      {adminOpen && munActivo && (
-        <div
-          className="au-modal"
-          onClick={() => {
-            setAdminOpen(false);
-            setMunActivo(null);
-            setProdsAsociados([]);
-            setCatalogoProds([]);
-            setBuscador("");
-          }}
-        >
-          <div className="au-modalBox" onClick={(e) => e.stopPropagation()}>
-            <div className="au-modalHead au-modalHead--sticky">
-              <div>
-                <div className="au-modalTitle">
-                  {munActivo.departamento} / {munActivo.municipio}
-                </div>
-                <div className="au-modalSub">Administrar imagen y productos</div>
-              </div>
-              <div className="au-rowActions">
-                <button
-                  onClick={() => {
-                    setAdminOpen(false);
-                    setMunActivo(null);
-                    setProdsAsociados([]);
-                    setCatalogoProds([]);
-                    setBuscador("");
-                  }}
-                  className="au-closeBtn"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            <div className="au-modalBody au-modalBody--scroll">
-              <div className="au-leftCol">
-                <div className="au-sectionHead">
-                  <div className="au-sectionTitle">Imagen del municipio</div>
-                  <div className="au-rowActions">
-                    <label className="au-editBtn" title="Editar imagen">
-                      ✏️
-                      <input type="file" accept="image/*" onChange={cambiarImagenMunicipio} />
-                      <span className="au-editText">
-                        {editImgLoading ? "Actualizando..." : "Editar"}
-                      </span>
-                    </label>
-                  </div>
-                </div>
-                <div className="au-imageStage">
-                  {munActivo.url ? (
-                    <img src={munActivo.url} alt={munActivo.municipio} className="au-stageImg" />
-                  ) : (
-                    <div className="au-stageEmpty">Sin imagen</div>
-                  )}
-                </div>
-              </div>
-
-              <div className="au-rightCol">
-                <div className="au-block">
-                  <div className="au-sectionTitle">Productos asociados</div>
-                  <div className="au-list">
-                    {prodsAsociados.map((p) => (
-                      <div key={p.id} className="au-item">
-                        <div className="au-itemIcon">
-                          {p._displayIcon ? (
-                            typeof p._displayIcon === "string" && p._displayIcon.length <= 4 ? (
-                              <span className="au-emoji">{p._displayIcon}</span>
-                            ) : (
-                              <img src={p._displayIcon} alt="" className="au-iconImg" />
-                            )
-                          ) : (
-                            <span className="au-emoji">✨</span>
-                          )}
-                        </div>
-                        <div className="au-itemName">{p._name || p.nombre}</div>
-                        <button
-                          onClick={() => eliminarProducto(p)}
-                          className="au-itemBtn au-danger"
-                          title="Eliminar producto"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    ))}
-                    {!prodsAsociados.length && (
-                      <div className="au-listEmpty">Sin productos asociados</div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="au-block">
-                  <div className="au-sectionHead">
-                    <div className="au-sectionTitle">Agregar desde catálogo</div>
-                    <input
-                      value={buscador}
-                      onChange={(e) => setBuscador(e.target.value)}
-                      placeholder="Buscar producto"
-                      className="au-searchInput"
-                    />
-                  </div>
-                  <div className="au-catGrid">
-                    {filtrados.map((p) => {
-                      const asociado = esAsociado(p.id);
-                      return (
-                        <div key={p.id} className="au-item au-itemCard">
-                          <div className="au-itemIcon">
-                            {p._displayIcon ? (
-                              typeof p._displayIcon === "string" && p._displayIcon.length <= 4 ? (
-                                <span className="au-emoji">{p._displayIcon}</span>
-                              ) : (
-                                <img src={p._displayIcon} alt="" className="au-iconImg" />
-                              )
-                            ) : (
-                              <span className="au-emoji">🧩</span>
-                            )}
-                          </div>
-                          <div className="au-itemName au-ellipsis">
-                            {p._name || "Sin nombre"}
-                          </div>
-                          <button
-                            onClick={() => asociarProducto(p)}
-                            disabled={asociado}
-                            className={`au-itemBtn ${asociado ? "au-disabled" : "au-primary"}`}
-                          >
-                            {asociado ? "Asociado" : "Asociar"}
-                          </button>
-                        </div>
-                      );
-                    })}
-                    {!filtrados.length && (
-                      <div className="au-listEmpty au-gridFull">
-                        No hay productos en el catálogo
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="au-modalFoot">
-              <div className="au-footHint">
-                Cambios de imagen y productos se guardan en tiempo real.
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

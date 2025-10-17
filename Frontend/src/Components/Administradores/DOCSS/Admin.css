@@ -768,3 +768,73 @@ body{margin:0;font-family:Inter,"Nunito Sans",system-ui,Arial,sans-serif;color:v
   .mgreg-toastStack{ left: 12px; right: 12px; bottom: 12px; }
   .mgreg-toast{ max-width: 100%; }
 }
+
+/* DETALLE MUNICIPIO */
+.au-mdet{gap:18px;padding-bottom:90px}
+.au-mdet-hero{border-radius:22px;background:
+  radial-gradient(120% 80% at 0% 0%, #ffffff 0%, #f5f8ff 55%, #eaf1ff 100%),
+  linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,.75));
+border:1px solid rgba(0,0,0,.06);box-shadow:0 24px 70px rgba(2,6,23,.10)}
+.au-mdet-heroIn{padding:18px}
+.au-mdet-crumbs{display:flex;align-items:center;gap:8px;color:#64748b;font-weight:800}
+.au-mdet-crumbLink{color:#0b2a4a;text-decoration:none;border-bottom:1px dashed rgba(11,42,74,.25)}
+.au-mdet-crumbLink:hover{opacity:.9}
+.au-mdet-crumbSep{opacity:.6}
+.au-mdet-crumbCur{color:#111827}
+.au-mdet-title{margin:.25rem 0 0;font-size:1.6rem;letter-spacing:.2px;color:#0b1b33;font-weight:900}
+.au-mdet-stats{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+
+.au-mdet-grid{display:grid;grid-template-columns:1.4fr .9fr;gap:18px}
+@media (max-width:1100px){.au-mdet-grid{grid-template-columns:1fr}}
+
+.au-mdet-left{display:grid;gap:18px;align-content:start}
+.au-mdet-right{display:grid;gap:18px;align-content:start}
+
+.au-mdet-cover{position:relative;height:420px;border-radius:20px;overflow:hidden;background:linear-gradient(180deg,#f8fafc,#e2e8f0);border:1px solid #e5e7eb;box-shadow:0 18px 60px rgba(2,6,23,.12)}
+.au-mdet-coverImg{width:100%;height:100%;object-fit:cover;transform:scale(1.02);transition:transform .35s ease,filter .35s ease}
+.au-mdet-cover:hover .au-mdet-coverImg{transform:scale(1.06);filter:brightness(1.04)}
+.au-mdet-coverEmpty{display:grid;place-items:center;height:100%;color:#6b7280;font-weight:900}
+.au-mdet-coverOverlay{position:absolute;inset:auto 0 0 0;height:90px;background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.14));pointer-events:none}
+
+.au-mdet-fab{position:absolute;right:14px;top:14px;display:inline-grid;grid-auto-flow:column;align-items:center;gap:8px;background:linear-gradient(180deg,#fff,#f8fafc);border:1px solid rgba(0,0,0,.06);border-radius:9999px;padding:8px 12px;font-weight:900;cursor:pointer;box-shadow:0 10px 28px rgba(2,6,23,.12)}
+.au-mdet-fab input{display:none}
+.au-mdet-fabIc{font-size:16px}
+.au-mdet-fabTx{font-size:.9rem}
+.au-mdet-fab:hover{transform:translateY(-1px)}
+
+.au-mdet-panel{background:linear-gradient(180deg,#ffffff,#f8fbff);border:1px solid rgba(0,0,0,.06);border-radius:20px;box-shadow:0 18px 60px rgba(2,6,23,.08)}
+.au-mdet-panelHead{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px dashed rgba(0,0,0,.08)}
+.au-mdet-panelTitle{margin:0;font-size:1rem;font-weight:900;color:#0b1220}
+.au-mdet-list{display:grid;gap:10px;max-height:280px;overflow:auto;padding:12px}
+
+.au-mdet-item{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;border:1px solid #e5e7eb;border-radius:14px;background:#fff;padding:10px 12px;transition:transform .16s ease,box-shadow .16s ease}
+.au-mdet-item:hover{transform:translateY(-1px);box-shadow:0 14px 28px rgba(2,6,23,.10)}
+.au-mdet-itemIcon{width:40px;height:40px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(180deg,#f8fafc,#eef2f7);border:1px solid #e5e7eb;overflow:hidden}
+.au-mdet-itemName{font-weight:900;color:#0b0b0b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.au-mdet-sideCard{position:sticky;top:18px;background:linear-gradient(180deg,#ffffff,#f7faff);border:1px solid rgba(0,0,0,.06);border-radius:20px;box-shadow:0 18px 60px rgba(2,6,23,.10);padding:14px}
+.au-mdet-sideHead{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.au-mdet-sideTitle{margin:0;font-size:1rem;font-weight:900;color:#0b1220}
+
+.au-mdet-search{min-width:220px}
+.au-mdet-searchInput{width:100%;border:1px solid #e5e7eb;border-radius:9999px;padding:10px 14px;font-weight:800;background:#fff;transition:box-shadow .18s ease,border-color .18s ease}
+.au-mdet-searchInput:focus{border-color:#93c5fd;box-shadow:0 0 0 6px rgba(147,197,253,.22);outline:none}
+
+.au-mdet-tags{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 8px}
+.au-mdet-tag{border:1px solid #e5e7eb;border-radius:9999px;padding:8px 12px;font-weight:900;background:linear-gradient(180deg,#fff,#f8fafc);cursor:pointer}
+.au-mdet-tag.is-active{background:#0b1220;color:#fff;border-color:#0b1220}
+
+.au-mdet-catGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;max-height:520px;overflow:auto}
+.au-mdet-card{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;border-radius:16px;background:linear-gradient(180deg,#ffffff,#f7faff) padding-box,linear-gradient(135deg, rgba(203,213,225,.45), rgba(203,213,225,0)) border-box;border:1px solid transparent;padding:10px 12px;transition:transform .18s ease,box-shadow .18s ease}
+.au-mdet-card:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(2,6,23,.12)}
+.au-mdet-cardIcon{width:40px;height:40px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(180deg,#f8fafc,#eef2f7);border:1px solid #e5e7eb;overflow:hidden}
+.au-mdet-cardName{font-weight:900;color:#0b0b0b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.au-mdet-sideSticky{display:flex;justify-content:flex-end}
+.au-mdet-back{border:1px solid #e5e7eb;background:linear-gradient(180deg,#fff,#f8fafc);border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer}
+
+.au-mdet-footer{position:fixed;left:260px;right:0;bottom:0;z-index:5}
+@media (max-width:860px){.au-mdet-footer{left:0}}
+.au-mdet-footIn{margin:0 26px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:linear-gradient(180deg,#ffffff,#f9fbff);border:1px solid rgba(0,0,0,.06);border-radius:16px;padding:10px 14px;box-shadow:0 18px 60px rgba(2,6,23,.18)}
+.au-mdet-footHint{font-size:.9rem;color:#6b7280;font-weight:800}
+.au-mdet-footActions{display:flex;gap:10px}

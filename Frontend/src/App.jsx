@@ -12,6 +12,7 @@ import NavbarAdm from './Components/Administradores/NavbarAdm';
 import PreciosDiarios from './Components/Agricultores/PreciosDiarios';
 import ProductosAdmin from './Components/Administradores/ProductosAdmin';
 import MunicipiosAdm from './Components/Administradores/MunicipiosAdm';
+import MunicipioDetalle from './Components/Administradores/MunicipioDetalle';
 
 function App() {
     return (
@@ -39,6 +40,11 @@ function App() {
                     <Route path="/Admin/Municipios" element={
                         <ProtectedRoute allowedRoles={['ADMIN']}>
                             <MunicipiosAdm />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/Admin/Municipios/:id" element={
+                        <ProtectedRoute allowedRoles={['ADMIN']}>
+                            <MunicipioDetalle />
                         </ProtectedRoute>
                     } />
 
