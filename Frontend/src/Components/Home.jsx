@@ -21,8 +21,10 @@ export default function Home() {
   const hoveringRef = useRef(false);
 
   useEffect(() => {
-      localStorage.removeItem("municipioSeleccionado");
-      localStorage.removeItem("fechaSeleccionada");
+    localStorage.removeItem("municipioSeleccionado");
+    localStorage.removeItem("fechaSeleccionada");
+    localStorage.removeItem("auth-token");
+    localStorage.removeItem("user-role");
     window.dispatchEvent(new Event("auth-changed"));
   }, []);
 
@@ -157,7 +159,7 @@ export default function Home() {
         <div className={styles.stat}><b>+10</b><span>Productos</span></div>
         <div className={styles.stat}><b>{slides.length}</b><span>Municipios</span></div>
         <div className={styles.stat}><b>+ 12&nbsp;meses</b><span>Histórico</span></div>
-        <div className={styles.stat}><b>100%</b><span>Desiciones Sostenibles</span></div>
+        <div className={styles.stat}><b>100%</b><span>Decisiones Sostenibles</span></div>
       </section>
 
       <section className={styles.gallery} id="galeria">
@@ -199,6 +201,7 @@ export default function Home() {
             onClick={() => navigate("/userlogin")}
             aria-label="Ir al login para iniciar"
           >
+            
             <Calendar size={16} /> Listo para iniciar
           </button>
         </div>

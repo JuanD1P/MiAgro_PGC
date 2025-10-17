@@ -1,3 +1,4 @@
+// Navbar.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import logo from "../ImagenesP/ImagenesLogin/LogoPeque.png";
@@ -21,9 +22,12 @@ export default function Navbar() {
   }, [location]);
 
   const handleLogout = () => {
-    localStorage.clear();
-    navigate("/userlogin");
-    window.location.reload();
+    localStorage.removeItem("auth-token");
+    localStorage.removeItem("user-role");
+    setRole(null);
+    setIsLogged(false);
+    window.dispatchEvent(new Event("auth-changed"));
+    navigate("/");
   };
 
   return (
@@ -55,15 +59,11 @@ export default function Navbar() {
           </>
         ) : (
           <>
-            {role === "ADMIN" && (
-              <>
-
-              </>
-            )}
+            {role === "ADMIN" && <></>}
 
             {role === "USER" && (
               <>
-              <button
+                <button
                   onClick={() => navigate("/Inicio")}
                   className="navbar-btn navbar-btnPrimary"
                 >
@@ -81,7 +81,6 @@ export default function Navbar() {
                 >
                   Chat MiAgroIA
                 </button>
-                
               </>
             )}
 
