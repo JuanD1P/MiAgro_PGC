@@ -13,6 +13,7 @@ import PreciosDiarios from './Components/Agricultores/PreciosDiarios';
 import ProductosAdmin from './Components/Administradores/ProductosAdmin';
 import MunicipiosAdm from './Components/Administradores/MunicipiosAdm';
 import MunicipioDetalle from './Components/Administradores/MunicipioDetalle';
+import ChatIA from './Components/Agricultores/ChatIA';
 
 function App() {
     return (
@@ -66,6 +67,12 @@ function App() {
                       <Route path="/PreciosDiarios" element={
                         <ProtectedRoute allowedRoles={['USER']}>
                             <PreciosDiarios />
+                        </ProtectedRoute>
+                    } />
+
+                    <Route path="/ChatIA" element={
+                        <ProtectedRoute allowedRoles={['USER']}>
+                            <ChatIA />
                         </ProtectedRoute>
                     } />
 
