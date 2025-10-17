@@ -383,7 +383,7 @@ export default function ProductosAdmin() {
                   <div className="section">
                     <div className="section-head">
                       <div className="section-title">Imagen</div>
-                      <div className="section-sub">Vista previa sin distorsión</div>
+                      <div className="section-sub">Vista previa de la imagen seleccionada</div>
                     </div>
                     <div className="au-field au-field-file">
                       <div className="au-label">Archivo</div>
@@ -446,7 +446,7 @@ export default function ProductosAdmin() {
                   <div className="section">
                     <div className="section-head">
                       <div className="section-title">Épocas</div>
-                      <div className="section-sub">Meses sugeridos</div>
+                      <div className="section-sub">Puedes escoger varios</div>
                     </div>
                     <ChipMulti
                       title="Meses de siembra"

@@ -70,7 +70,7 @@ body{background:var(--au-bg);color:var(--au-text);font-family:Inter,system-ui,Se
 .au-chip.is-selected{background:#0a2142;color:#fff;border-color:#0a2142;transform:translateY(-1px)}
 
 .au-actions{display:flex;justify-content:flex-end}
-.au-btnPrimary{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;border:none;border-radius:10px;padding:11px 16px;font-weight:800;cursor:pointer;box-shadow:0 10px 20px rgba(37,99,235,.22)}
+.au-btnPrimary{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#001b47,#012269);color:#fff;border:none;border-radius:10px;padding:11px 16px;font-weight:800;cursor:pointer;box-shadow:0 10px 20px rgba(37,99,235,.22)}
 .au-btnSm{padding:8px 11px;border-radius:9px;font-weight:800}
 .au-btnDanger{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#fecaca,#fee2e2);color:#7f1d1d;border:1px solid #fecaca;border-radius:10px;padding:9px 12px;font-weight:800}
 .au-btnDangerSolid{background:#b91c1c;border-color:#b91c1c;color:#fff}
