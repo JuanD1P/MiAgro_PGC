@@ -5,7 +5,7 @@ import { supabase } from "../../supabase/client";
 import ToastStack from "../ToastStack";
 import NavbarAdm from "./NavbarAdm.jsx";
 import "./DOCSS/Productos.css";
-import "./DOCSS/Admin.css";
+
 
 import { PRODUCTOS_OPCIONES } from "../../data/productosListado";
 
