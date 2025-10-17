@@ -21,7 +21,8 @@ export default function Home() {
   const hoveringRef = useRef(false);
 
   useEffect(() => {
-    localStorage.clear();
+      localStorage.removeItem("municipioSeleccionado");
+      localStorage.removeItem("fechaSeleccionada");
     window.dispatchEvent(new Event("auth-changed"));
   }, []);
 
