@@ -75,6 +75,12 @@ export default function Navbar() {
                 >
                   Precios Hoy
                 </button>
+                <button
+                  onClick={() => navigate("/ChatIA")}
+                  className="navbar-btn navbar-btnPrimary"
+                >
+                  Chat MiAgroIA
+                </button>
                 
               </>
             )}
