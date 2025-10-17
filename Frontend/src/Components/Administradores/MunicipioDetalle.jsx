@@ -15,6 +15,7 @@ import { supabase } from "../../supabase/client";
 import ToastStack from "../ToastStack";
 import NavbarAdm from "./NavbarAdm.jsx";
 import "./DOCSS/Admin.css";
+import "./DOCSS/Municipio.css";
 import Swal from "sweetalert2";
 import "@sweetalert2/themes/borderless/borderless.css";
 

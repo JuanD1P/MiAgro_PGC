@@ -11,7 +11,9 @@ import {
 import { supabase } from "../../supabase/client";
 import ToastStack from "../ToastStack";
 import NavbarAdm from "./NavbarAdm.jsx";
+import "./DOCSS/Municipio.css";
 import "./DOCSS/Admin.css";
+
 import Swal from "sweetalert2";
 import "@sweetalert2/themes/borderless/borderless.css";
 import { useNavigate } from "react-router-dom";
