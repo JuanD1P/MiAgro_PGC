@@ -1,3 +1,4 @@
+/* src/Components/Administradores/DOCSS/Productos.css */
 :root{
   --au-bg:#f6f8fc;
   --au-surface:#ffffff;
@@ -23,6 +24,7 @@ body{background:var(--au-bg);color:var(--au-text);font-family:Inter,system-ui,Se
 .au-chip{display:inline-flex;align-items:center;gap:8px;background:#eff4ff;border:1px solid #d9e7ff;color:#0a2142;padding:6px 10px;border-radius:999px;font-weight:600}
 .au-mainHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .au-title{margin:0;font-size:26px}
+.au-title-sm{font-size:18px}
 
 .au-pad16{padding:14px}
 .pro-form{display:flex;flex-direction:column;gap:16px}
@@ -83,7 +85,7 @@ body{background:var(--au-bg);color:var(--au-text);font-family:Inter,system-ui,Se
 @media (max-width:520px){.pro-card{grid-template-columns:1fr}}
 .pro-thumb{position:relative;background:#f3f6ff}
 .pro-thumb img{width:100%;height:100%;object-fit:cover;display:block}
-.pro-thumbEmpty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--au-muted);font-weight:700}
+.pro-thumbEmpty{display:flex;align-items:center;justify-content:center;height:100%;color:#a0aec0;font-weight:700}
 .pro-badge{position:absolute;left:8px;top:8px;background:#0a2142;color:#fff;font-size:11px;padding:6px 9px;border-radius:999px}
 .pro-body{padding:12px}
 .pro-name{margin:0 0 8px 0;font-size:15px;line-height:1.2}
@@ -91,14 +93,59 @@ body{background:var(--au-bg);color:var(--au-text);font-family:Inter,system-ui,Se
 .pro-chip{font-size:12px;background:#f6faff;border:1px solid #e1eaff;padding:6px 10px;border-radius:999px}
 .pro-actions{display:flex;gap:8px}
 
-/* Toasts */
-.toast-host{position:fixed;right:18px;top:18px;display:flex;flex-direction:column;gap:10px;z-index:1000}
-.toast{display:flex;gap:10px;background:#fff;border:1px solid var(--au-line);border-radius:12px;padding:10px 12px;min-width:260px;max-width:360px;box-shadow:0 12px 32px rgba(10,16,32,.14)}
-.toast-icon{font-size:18px}
-.toast-title{font-weight:800;font-size:13px;margin-bottom:2px}
-.toast-msg{font-size:13px;color:#283042}
-.toast-x{border:none;background:transparent;font-size:16px;cursor:pointer}
-.toast-success{border-color:#bbf7d0}
-.toast-error{border-color:#fecaca}
-.toast-warning{border-color:#fde68a}
-.toast-info{border-color:#bfdbfe}
+/* TOASTS (clases únicas mg-) */
+.mg-toast-host{
+  position:fixed;
+  top:88px;
+  right:18px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:10px;
+  z-index:4000;
+  width:min(92vw, 420px);
+  pointer-events:none;
+}
+.mg-toast{
+  position:relative;
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  background:#ffffff;
+  color:#0a1020;
+  border:1px solid var(--au-line);
+  border-radius:12px;
+  padding:10px 12px 10px 14px;
+  min-width:260px;
+  max-width:100%;
+  box-shadow:0 12px 32px rgba(10,16,32,.14);
+  pointer-events:auto;
+}
+.mg-toast::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:4px;
+  background:var(--mg-accent, #e5e7eb);
+  border-radius:12px 0 0 12px;
+}
+.mg-toast__icon{font-size:18px;line-height:1;margin-top:2px}
+.mg-toast__title{font-weight:800;font-size:13px;margin-bottom:2px}
+.mg-toast__msg{font-size:13px;color:#283042}
+.mg-toast__close{border:none;background:transparent;font-size:16px;cursor:pointer;margin-left:auto}
+
+.mg-toast--success{--mg-accent:#16a34a}
+.mg-toast--error{--mg-accent:#dc2626}
+.mg-toast--warning{--mg-accent:#d97706}
+.mg-toast--info{--mg-accent:#2563eb}
+
+.mg-toast--success .mg-toast__icon{color:#16a34a}
+.mg-toast--error .mg-toast__icon{color:#dc2626}
+.mg-toast--warning .mg-toast__icon{color:#d97706}
+.mg-toast--info .mg-toast__icon{color:#2563eb}
+
+@media (max-width:720px){
+  .mg-toast-host{ top:96px; right:12px; width:min(94vw, 420px) }
+}

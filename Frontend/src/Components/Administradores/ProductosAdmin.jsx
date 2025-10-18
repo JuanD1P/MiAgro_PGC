@@ -12,15 +12,15 @@ const TIPOS = ["Fruta","Verdura","Tubérculo","Grano","Aromática","Otro"];
 
 function ToastHost({ toasts, onClose }) {
   return (
-    <div className="toast-host">
+    <div className="mg-toast-host" role="region" aria-live="polite" aria-label="Notificaciones">
       {toasts.map(t => (
-        <div key={t.id} className={`toast toast-${t.variant || "info"}`}>
-          <div className="toast-icon">{t.icon || "ℹ️"}</div>
-          <div className="toast-body">
-            {t.title ? <div className="toast-title">{t.title}</div> : null}
-            <div className="toast-msg">{t.message}</div>
+        <div key={t.id} className={`mg-toast ${t.variant ? `mg-toast--${t.variant}` : "mg-toast--info"}`}>
+          <div className="mg-toast__icon" aria-hidden="true">{t.icon || "ℹ️"}</div>
+          <div className="mg-toast__body">
+            {t.title ? <div className="mg-toast__title">{t.title}</div> : null}
+            <div className="mg-toast__msg">{t.message}</div>
           </div>
-          <button className="toast-x" onClick={()=>onClose(t.id)}>✕</button>
+          <button className="mg-toast__close" onClick={()=>onClose(t.id)} aria-label="Cerrar notificación">✕</button>
         </div>
       ))}
     </div>
@@ -85,6 +85,8 @@ export default function ProductosAdmin() {
     info:    (msg, o) => pushToast(msg, { title:"Info", icon:"ℹ️", variant:"info", ...o }),
   };
 
+  const [showForm, setShowForm] = useState(false);
+
   const [nombre, setNombre] = useState("");
   const [tipo, setTipo] = useState("");
   const [file, setFile] = useState(null);
@@ -97,10 +99,7 @@ export default function ProductosAdmin() {
   const [activeIdx, setActiveIdx] = useState(0);
   const [dragOver, setDragOver] = useState(false);
 
-  const [agro, setAgro] = useState({
-    cicloDias: "",
-    epocas: []
-  });
+  const [agro, setAgro] = useState({ cicloDias: "", epocas: [] });
 
   const [rangos, setRangos] = useState({
     tempMin: "", tempMax: "",
@@ -110,6 +109,7 @@ export default function ProductosAdmin() {
 
   const inputRef = useRef(null);
   const listRef = useRef(null);
+  const formRef = useRef(null);
 
   useEffect(() => {
     const unsub = onSnapshot(
@@ -119,6 +119,10 @@ export default function ProductosAdmin() {
     );
     return unsub;
   }, []);
+
+  useEffect(() => {
+    if (showForm && formRef.current) formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [showForm]);
 
   const productosExistentes = useMemo(
     () => productos.map(p => (p.nombre || "").toLowerCase().trim()),
@@ -245,6 +249,7 @@ export default function ProductosAdmin() {
       setNombre(""); setTipo("");
       setFile(null); setPreview("");
       setFiltro(""); setOpenList(false);
+      setShowForm(false);
     } catch (err) {
       notify.error(err.message || "Error al guardar");
     } finally {
@@ -306,211 +311,227 @@ export default function ProductosAdmin() {
 
         <header className="au-mainHead">
           <h1 className="au-title">Gestión de Productos</h1>
+          <button
+            className="au-btnPrimary au-btnAdd"
+            type="button"
+            onClick={()=>setShowForm(v=>!v)}
+            aria-expanded={showForm}
+            aria-controls="pro-form-card"
+          >
+            {showForm ? "✕ Cerrar" : "+ Agregar"}
+          </button>
         </header>
 
-        <div className="au-card">
-          <div className="au-cardHead">
-            <div className="au-chip">{productos.length} productos</div>
-          </div>
+        {showForm && (
+          <div className="au-card" id="pro-form-card" ref={formRef}>
+            <div className="au-cardHead">
+              <div className="au-chip">Nuevo producto</div>
+            </div>
 
-          <div className="au-pad16">
-            <form onSubmit={onSubmit} className="pro-form" autoComplete="off">
-              <div className="form-wrap">
-                <section className="form-col">
-                  <div className="section">
-                    <div className="section-head">
-                      <div className="section-title">Básicos</div>
-                      <div className="section-sub">Nombre y tipo</div>
+            <div className="au-pad16">
+              <form onSubmit={onSubmit} className="pro-form" autoComplete="off">
+                <div className="form-wrap">
+                  <section className="form-col">
+                    <div className="section">
+                      <div className="section-head">
+                        <div className="section-title">Básicos</div>
+                        <div className="section-sub">Nombre y tipo</div>
+                      </div>
+                      <div className="grid-2">
+                        <div className="au-field">
+                          <div className="au-label">Producto</div>
+                          <div className="au-pro-combobox" aria-haspopup="listbox" aria-expanded={openList}>
+                            <input
+                              ref={inputRef}
+                              value={filtro}
+                              onChange={(e)=>{ setFiltro(e.target.value); setOpenList(true); }}
+                              onFocus={()=>setOpenList(true)}
+                              onKeyDown={onSearchKey}
+                              placeholder="Buscar o elegir producto"
+                              className="au-pro-search"
+                              role="combobox"
+                              aria-controls="pro-options"
+                              aria-autocomplete="list"
+                              autoComplete="off"
+                              spellCheck={false}
+                            />
+                            <button
+                              type="button"
+                              className="au-pro-clear"
+                              onClick={()=>{ setFiltro(""); setNombre(""); inputRef.current?.focus(); }}
+                              aria-label="Limpiar búsqueda"
+                            >
+                              ✕
+                            </button>
+                            {openList && (
+                              <div className="au-pro-list" id="pro-options" role="listbox" ref={listRef}>
+                                {visibleOptions.length ? (
+                                  visibleOptions.map((o, i) => {
+                                    const q = filtro.trim().toLowerCase();
+                                    const idx = o.label.toLowerCase().indexOf(q);
+                                    const before = idx >= 0 ? o.label.slice(0, idx) : o.label;
+                                    const match  = idx >= 0 ? o.label.slice(idx, idx + q.length) : "";
+                                    const after  = idx >= 0 ? o.label.slice(idx + q.length) : "";
+                                    return (
+                                      <div
+                                        key={o.value}
+                                        role="option"
+                                        aria-selected={i === activeIdx}
+                                        className={`au-pro-option ${i === activeIdx ? "is-active" : ""}`}
+                                        onMouseDown={() => { setNombre(o.value); setFiltro(o.label); setOpenList(false); }}
+                                      >
+                                        <span className="au-pro-optionText">
+                                          {idx >= 0 ? (<>{before}<strong>{match}</strong>{after}</>) : o.label}
+                                        </span>
+                                      </div>
+                                    );
+                                  })
+                                ) : (
+                                  <div className="au-pro-emptyOpt">Sin resultados</div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="au-field">
+                          <div className="au-label">Tipo</div>
+                          <select value={tipo} onChange={(e)=>setTipo(e.target.value)} className="au-input">
+                            <option value="">Selecciona el tipo</option>
+                            {TIPOS.map(t => <option key={t} value={t}>{t}</option>)}
+                          </select>
+                        </div>
+                      </div>
                     </div>
-                    <div className="grid-2">
-                      <div className="au-field">
-                        <div className="au-label">Producto</div>
-                        <div className="au-pro-combobox" aria-haspopup="listbox" aria-expanded={openList}>
-                          <input
-                            ref={inputRef}
-                            value={filtro}
-                            onChange={(e)=>{ setFiltro(e.target.value); setOpenList(true); }}
-                            onFocus={()=>setOpenList(true)}
-                            onKeyDown={onSearchKey}
-                            placeholder="Buscar o elegir producto"
-                            className="au-pro-search"
-                            role="combobox"
-                            aria-controls="pro-options"
-                            aria-autocomplete="list"
-                            autoComplete="off"
-                            spellCheck={false}
-                          />
-                          <button
-                            type="button"
-                            className="au-pro-clear"
-                            onClick={()=>{ setFiltro(""); setNombre(""); inputRef.current?.focus(); }}
-                            aria-label="Limpiar búsqueda"
-                          >
-                            ✕
-                          </button>
-                          {openList && (
-                            <div className="au-pro-list" id="pro-options" role="listbox" ref={listRef}>
-                              {visibleOptions.length ? (
-                                visibleOptions.map((o, i) => {
-                                  const q = filtro.trim().toLowerCase();
-                                  const idx = o.label.toLowerCase().indexOf(q);
-                                  const before = idx >= 0 ? o.label.slice(0, idx) : o.label;
-                                  const match  = idx >= 0 ? o.label.slice(idx, idx + q.length) : "";
-                                  const after  = idx >= 0 ? o.label.slice(idx + q.length) : "";
-                                  return (
-                                    <div
-                                      key={o.value}
-                                      role="option"
-                                      aria-selected={i === activeIdx}
-                                      className={`au-pro-option ${i === activeIdx ? "is-active" : ""}`}
-                                      onMouseDown={() => { setNombre(o.value); setFiltro(o.label); setOpenList(false); }}
-                                    >
-                                      <span className="au-pro-optionText">
-                                        {idx >= 0 ? (<>{before}<strong>{match}</strong>{after}</>) : o.label}
-                                      </span>
-                                    </div>
-                                  );
-                                })
-                              ) : (
-                                <div className="au-pro-emptyOpt">Sin resultados</div>
-                              )}
+
+                    <div className="section">
+                      <div className="section-head">
+                        <div className="section-title">Imagen</div>
+                        <div className="section-sub">Vista previa de la imagen seleccionada</div>
+                      </div>
+                      <div className="au-field au-field-file">
+                        <div className="au-label">Archivo</div>
+                        <div
+                          className={`au-pro-dropzone ${dragOver ? "is-over" : ""}`}
+                          onDragOver={(e)=>{ e.preventDefault(); setDragOver(true); }}
+                          onDragLeave={()=>setDragOver(false)}
+                          onDrop={onDrop}
+                          tabIndex={0}
+                          role="button"
+                          aria-label="Seleccionar o arrastrar imagen"
+                        >
+                          <input id="prod-file" type="file" accept="image/*" onChange={onFileInput} />
+                          {!preview && (
+                            <div className="au-dz-inner">
+                              <div className="au-dz-icon">📷</div>
+                              <div className="au-dz-label">Seleccionar o arrastrar imagen</div>
+                            </div>
+                          )}
+                          {preview && (
+                            <div className="au-pro-previewOverlay">
+                              <img src={preview} alt="preview" className="au-pro-previewImgContain" />
+                              <button type="button" className="au-btnDanger au-btnDangerSolid au-pro-remove" onClick={clearImage}>Quitar</button>
                             </div>
                           )}
                         </div>
                       </div>
+                    </div>
+                  </section>
 
-                      <div className="au-field">
-                        <div className="au-label">Tipo</div>
-                        <select value={tipo} onChange={(e)=>setTipo(e.target.value)} className="au-input">
-                          <option value="">Selecciona el tipo</option>
-                          {TIPOS.map(t => <option key={t} value={t}>{t}</option>)}
-                        </select>
+                  <section className="form-col">
+                    <div className="section">
+                      <div className="section-head">
+                        <div className="section-title">Parámetros</div>
+                        <div className="section-sub">Rangos recomendados</div>
                       </div>
-                    </div>
-                  </div>
-
-                  <div className="section">
-                    <div className="section-head">
-                      <div className="section-title">Imagen</div>
-                      <div className="section-sub">Vista previa de la imagen seleccionada</div>
-                    </div>
-                    <div className="au-field au-field-file">
-                      <div className="au-label">Archivo</div>
-                      <div
-                        className={`au-pro-dropzone ${dragOver ? "is-over" : ""}`}
-                        onDragOver={(e)=>{ e.preventDefault(); setDragOver(true); }}
-                        onDragLeave={()=>setDragOver(false)}
-                        onDrop={onDrop}
-                        tabIndex={0}
-                        role="button"
-                        aria-label="Seleccionar o arrastrar imagen"
-                      >
-                        <input id="prod-file" type="file" accept="image/*" onChange={onFileInput} />
-                        {!preview && (
-                          <div className="au-dz-inner">
-                            <div className="au-dz-icon">📷</div>
-                            <div className="au-dz-label">Seleccionar o arrastrar imagen</div>
-                          </div>
-                        )}
-                        {preview && (
-                          <div className="au-pro-previewOverlay">
-                            <img src={preview} alt="preview" className="au-pro-previewImgContain" />
-                            <button type="button" className="au-btnDanger au-btnDangerSolid au-pro-remove" onClick={clearImage}>Quitar</button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </section>
-
-                <section className="form-col">
-                  <div className="section">
-                    <div className="section-head">
-                      <div className="section-title">Parámetros</div>
-                      <div className="section-sub">Rangos recomendados</div>
-                    </div>
-                    <div className="grid-2">
-                      <RangeFree
-                        label="Temperatura ideal"
-                        unit="°C"
-                        placeholderMin="18"
-                        placeholderMax="28"
-                        minValue={rangos.tempMin}
-                        maxValue={rangos.tempMax}
-                        onMinChange={handleTempMin}
-                        onMaxChange={handleTempMax}
-                        maxLen={4}
-                      />
-                      <RangeFree
-                        label="Humedad relativa"
-                        unit="%"
-                        placeholderMin="50"
-                        placeholderMax="80"
-                        minValue={rangos.humMin}
-                        maxValue={rangos.humMax}
-                        onMinChange={handleHumMin}
-                        onMaxChange={handleHumMax}
-                        maxLen={4}
-                      />
-                      <RangeFree
-                        label="Altitud"
-                        unit="m s. n. m."
-                        placeholderMin="0"
-                        placeholderMax="2600"
-                        minValue={rangos.altMin}
-                        maxValue={rangos.altMax}
-                        onMinChange={handleAltMin}
-                        onMaxChange={handleAltMax}
-                        maxLen={4}
-                      />
-                      <div className="au-field">
-                        <div className="au-label">Ciclo (días a cosecha)</div>
-                        <input
-                          type="text"
-                          className="au-input"
-                          placeholder="90"
-                          value={agro.cicloDias}
-                          onChange={(e)=>setAgro(s=>({...s, cicloDias:e.target.value}))}
-                          autoComplete="off"
-                          spellCheck={false}
-                          inputMode="numeric"
-                          maxLength={4}
-                          name="cicloDias"
-                          onKeyDown={(e)=>{ if (e.key === "Enter") e.preventDefault(); e.stopPropagation(); }}
-                          onKeyUp={(e)=>{ e.stopPropagation(); }}
+                      <div className="grid-2">
+                        <RangeFree
+                          label="Temperatura ideal"
+                          unit="°C"
+                          placeholderMin="18"
+                          placeholderMax="28"
+                          minValue={rangos.tempMin}
+                          maxValue={rangos.tempMax}
+                          onMinChange={v=>setRangos(s=>({...s,tempMin:v}))}
+                          onMaxChange={v=>setRangos(s=>({...s,tempMax:v}))}
+                          maxLen={4}
                         />
+                        <RangeFree
+                          label="Humedad relativa"
+                          unit="%"
+                          placeholderMin="50"
+                          placeholderMax="80"
+                          minValue={rangos.humMin}
+                          maxValue={rangos.humMax}
+                          onMinChange={v=>setRangos(s=>({...s,humMin:v}))}
+                          onMaxChange={v=>setRangos(s=>({...s,humMax:v}))}
+                          maxLen={4}
+                        />
+                        <RangeFree
+                          label="Altitud"
+                          unit="m s. n. m."
+                          placeholderMin="0"
+                          placeholderMax="2600"
+                          minValue={rangos.altMin}
+                          maxValue={rangos.altMax}
+                          onMinChange={v=>setRangos(s=>({...s,altMin:v}))}
+                          onMaxChange={v=>setRangos(s=>({...s,altMax:v}))}
+                          maxLen={4}
+                        />
+                        <div className="au-field">
+                          <div className="au-label">Ciclo (días a cosecha)</div>
+                          <input
+                            type="text"
+                            className="au-input"
+                            placeholder="90"
+                            value={agro.cicloDias}
+                            onChange={(e)=>setAgro(s=>({...s, cicloDias:e.target.value}))}
+                            autoComplete="off"
+                            spellCheck={false}
+                            inputMode="numeric"
+                            maxLength={4}
+                            name="cicloDias"
+                            onKeyDown={(e)=>{ if (e.key === "Enter") e.preventDefault(); e.stopPropagation(); }}
+                            onKeyUp={(e)=>{ e.stopPropagation(); }}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="section">
-                    <div className="section-head">
-                      <div className="section-title">Épocas</div>
-                      <div className="section-sub">Puedes escoger varios</div>
+                    <div className="section">
+                      <div className="section-head">
+                        <div className="section-title">Épocas</div>
+                        <div className="section-sub">Puedes escoger varios</div>
+                      </div>
+                      <ChipMulti
+                        title="Meses de siembra"
+                        options={MESES}
+                        value={agro.epocas}
+                        onChange={(v)=>setAgro(s=>({...s, epocas: v}))}
+                        ariaLabel="Selecciona los meses recomendados de siembra"
+                      />
                     </div>
-                    <ChipMulti
-                      title="Meses de siembra"
-                      options={MESES}
-                      value={agro.epocas}
-                      onChange={(v)=>setAgro(s=>({...s, epocas: v}))}
-                      ariaLabel="Selecciona los meses recomendados de siembra"
-                    />
-                  </div>
-                </section>
-              </div>
+                  </section>
+                </div>
 
-              <div className="au-actions">
-                <button type="submit" disabled={loading} className="au-btnPrimary pro-btnSave">
-                  {loading ? "Guardando..." : "Guardar"}
-                </button>
-              </div>
-            </form>
+                <div className="au-actions">
+                  <button type="submit" disabled={loading} className="au-btnPrimary pro-btnSave">
+                    {loading ? "Guardando..." : "Guardar"}
+                  </button>
+                  <button type="button" className="au-btnGhost" onClick={()=>setShowForm(false)}>Cancelar</button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="au-card">
           <div className="au-cardHead">
             <h3 className="au-title au-title-sm">Registrados</h3>
+            <div className="au-cardActions">
+              <span className="au-chip">{productos.length} productos</span>
+
+            </div>
           </div>
           <div className="au-pad16">
             <div className="au-cardsGrid">
