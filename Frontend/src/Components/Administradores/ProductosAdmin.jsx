@@ -6,6 +6,8 @@ import { supabase } from "../../supabase/client";
 import NavbarAdm from "./NavbarAdm.jsx";
 import "./DOCSS/Productos.css";
 import { PRODUCTOS_OPCIONES } from "../../data/productosListado";
+import Swal from "sweetalert2";
+import "@sweetalert2/themes/borderless/borderless.css";
 
 const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const TIPOS = ["Fruta","Verdura","Tubérculo","Grano","Aromática","Otro"];
@@ -298,9 +300,48 @@ export default function ProductosAdmin() {
   const handleAltMax  = useCallback((v)=>setRangos(s=>({...s,altMax:v})),[]);
 
   const eliminar = async (p) => {
-    if (!confirm(`Eliminar "${p.nombre}"?`)) return;
-    try { await deleteDoc(doc(db, "productos", p.id)); notify.warn("Producto eliminado"); }
-    catch (e) { notify.error(e.message || "No se pudo eliminar"); }
+    const { isConfirmed } = await Swal.fire({
+      icon: "warning",
+      title: "¿Eliminar producto?",
+
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+      reverseButtons: true,
+      focusConfirm: false,
+      buttonsStyling: false,
+      customClass: { popup: "au-sw-popup", title: "au-sw-title", actions: "au-sw-actions", confirmButton: "au-sw-confirm", cancelButton: "au-sw-cancel" },
+      willOpen: () => {
+        const note = document.getElementById("sw-del-note");
+        const ctr = document.getElementById("sw-del-ctr");
+        if (note && ctr) note.addEventListener("input", () => ctr.textContent = `${note.value.length} / 180`);
+      },
+      preConfirm: () => {
+        const v = (document.getElementById("sw-del-confirm")?.value || "").trim().toUpperCase();
+        if (v !== "ELIMINAR") {
+          Swal.showValidationMessage("Debes escribir ELIMINAR");
+          return false;
+        }
+      }
+    });
+    if (!isConfirmed) return;
+    try {
+      await Swal.fire({
+        title: "Eliminando…",
+        html: "Por favor espera",
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: async () => {
+          Swal.showLoading();
+          await deleteDoc(doc(db, "productos", p.id));
+          Swal.close();
+        }
+      });
+      notify.warn("Producto eliminado");
+    } catch (e) {
+      Swal.close();
+      notify.error(e.message || "No se pudo eliminar");
+    }
   };
 
   return (
@@ -530,7 +571,6 @@ export default function ProductosAdmin() {
             <h3 className="au-title au-title-sm">Registrados</h3>
             <div className="au-cardActions">
               <span className="au-chip">{productos.length} productos</span>
-
             </div>
           </div>
           <div className="au-pad16">

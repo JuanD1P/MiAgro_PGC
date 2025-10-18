@@ -59,9 +59,12 @@ export default function MunicipiosAdm() {
   const [preview, setPreview] = useState("");
   const [loading, setLoading] = useState(false);
   const [municipios, setMunicipios] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [query, setQuery] = useState("");
   const navigate = useNavigate();
 
   const safe = (s) => s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-");
+  const norm = (s) => (s || "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "municipios"), (snap) => setMunicipios(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
@@ -107,6 +110,7 @@ export default function MunicipiosAdm() {
       });
       addToast("Municipio registrado con éxito", "success");
       setDepSel(""); setMunSel(""); setFile(null); setPreview("");
+      setShowForm(false);
     } catch {
       addToast("Error al guardar municipio", "error");
     } finally {
@@ -115,11 +119,59 @@ export default function MunicipiosAdm() {
   };
 
   const eliminar = async (m) => {
-    await deleteDoc(doc(db, "municipios", m.id));
-    addToast("Municipio eliminado", "warn");
+    const result = await Swal.fire({
+      title: "¿Eliminar municipio?",
+      html: `Esta acción eliminará a <b>${m.municipio}</b> del sistema de forma permanente.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+      reverseButtons: true,
+      showLoaderOnConfirm: true,
+      allowOutsideClick: () => !Swal.isLoading(),
+      buttonsStyling: false,
+      customClass: {
+        container: "au-sw-container",
+        popup: "au-sw-popup",
+        title: "au-sw-title",
+        htmlContainer: "au-sw-text",
+        actions: "au-sw-actions",
+        confirmButton: "au-sw-confirm",
+        cancelButton: "au-sw-cancel",
+      },
+      preConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, "municipios", m.id));
+        } catch (error) {
+          Swal.showValidationMessage("No fue posible eliminar el municipio");
+          return false;
+        }
+      },
+    });
+
+    if (result.isConfirmed) {
+      addToast("Municipio eliminado", "warn");
+      Swal.fire({
+        icon: "success",
+        title: "Eliminado correctamente",
+        timer: 1200,
+        showConfirmButton: false,
+        customClass: { popup: "au-sw-popup" },
+        buttonsStyling: false,
+      });
+    }
   };
 
   const abrirAdmin = (m) => navigate(`/admin/municipios/${m.id}`);
+
+  const deferredQuery = useDeferredValue(query);
+  const filteredMunicipios = useMemo(() => {
+    const q = norm(deferredQuery);
+    if (!q) return municipios;
+    return municipios.filter(
+      (m) => norm(m.municipio).includes(q) || norm(m.departamento).includes(q)
+    );
+  }, [municipios, deferredQuery]);
 
   return (
     <div className="au-layout">
@@ -136,74 +188,135 @@ export default function MunicipiosAdm() {
         <div className="au-card">
           <div className="au-cardHead">
             <div className="au-chip">{municipios.length} municipios</div>
+            <button
+              className="au-addBtn"
+              onClick={() => setShowForm((s) => !s)}
+            >
+              {showForm ? "− Cerrar" : "+ Agregar"}
+            </button>
           </div>
-          <form onSubmit={submit} className="au-grid-form au-grid-form--enhanced">
-            <div className="au-field">
-              <label className="au-label">Departamento</label>
-              <select value={depSel} onChange={(e) => setDepSel(e.target.value)} className="au-input au-select">
-                <option value="">Selecciona un departamento</option>
-                {departamentos.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-              </select>
-              <div className="au-help">Primero selecciona el departamento.</div>
-            </div>
 
-            <div className="au-field">
-              <label className="au-label">Municipio</label>
-              <select value={munSel} onChange={(e) => setMunSel(e.target.value)} className="au-input au-select" disabled={!depSel}>
-                <option value="">Selecciona un municipio</option>
-                {municipiosApi.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-              </select>
-              <div className="au-help">Selecciona el municipio correspondiente.</div>
-            </div>
+          <div className={`au-formWrap ${showForm ? "show" : ""}`}>
+            {showForm && (
+              <form onSubmit={submit} className="au-grid-form au-grid-form--enhanced">
+                <div className="au-field">
+                  <label className="au-label">Departamento</label>
+                  <select value={depSel} onChange={(e) => setDepSel(e.target.value)} className="au-input au-select">
+                    <option value="">Selecciona un departamento</option>
+                    {departamentos.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </div>
 
-            <div className="au-field au-field--drop">
-  <label className="au-label">Imagen Seleccionada</label>
-  <div
-    className={`au-dropzone ${file ? "has-image" : ""}`}
-    onClick={() => document.getElementById("mun-file").click()}
-  >
-    <input
-      id="mun-file"
-      type="file"
-      accept="image/*"
-      onChange={(e) => {
-        const f = e.target.files[0];
-        setFile(f);
-        setPreview(URL.createObjectURL(f));
-      }}
-    />
-    {!file && (
-      <>
-        <div className="au-dz-icon">📸</div>
-        <div className="au-dz-label">Seleccionar o arrastrar</div>
-      </>
-    )}
-    {file && (
-      <img src={preview} alt="preview" className="au-previewInline" />
-    )}
-    {file && <span className="au-dz-filename">{file.name}</span>}
-  </div>
-  <div className="au-help">Peso recomendado &lt; 2 MB. Proporción 16:9.</div>
-</div>
+                <div className="au-field">
+                  <label className="au-label">Municipio</label>
+                  <select value={munSel} onChange={(e) => setMunSel(e.target.value)} className="au-input au-select" disabled={!depSel}>
+                    <option value="">Selecciona un municipio</option>
+                    {municipiosApi.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  </select>
+                </div>
 
+                <div className="au-field au-field--drop">
+                  <label className="au-label">Imagen Seleccionada</label>
+                  <div
+                    className={`au-dropzone ${file ? "has-image" : ""}`}
+                    onClick={() => document.getElementById("mun-file").click()}
+                  >
+                    <input
+                      id="mun-file"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const f = e.target.files[0];
+                        setFile(f);
+                        setPreview(URL.createObjectURL(f));
+                      }}
+                    />
+                    {!file && (
+                      <>
+                        <div className="au-dz-icon">📸</div>
+                        <div className="au-dz-label">Seleccionar o arrastrar</div>
+                      </>
+                    )}
+                    {file && <img src={preview} alt="preview" className="au-previewInline" />}
+                    {file && <span className="au-dz-filename">{file.name}</span>}
+                  </div>
+                </div>
 
-            <div className="au-actionsRow">
-              <button type="submit" disabled={loading} className="au-btnPrimary">
-                {loading ? "Guardando..." : "Guardar municipio"}
-              </button>
-            </div>
-          </form>
+                <div className="au-actionsRow">
+                  <button type="submit" disabled={loading} className="au-btnPrimary">
+                    {loading ? "Guardando..." : "Guardar municipio"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
 
         <div className="au-card">
-          <div className="au-cardHead">
+          <div className="au-cardHead au-flexBetween">
             <h3 className="au-title au-title-sm">Registrados</h3>
+            <div className="au-searchWrap">
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="au-input au-searchInput"
+                placeholder="Buscar por municipio o departamento"
+              />
+            </div>
           </div>
           <div className="au-tableWrap au-pad16">
-            <RegistradosGrid items={municipios} abrirAdmin={abrirAdmin} eliminar={eliminar} />
+            <RegistradosGrid items={filteredMunicipios} abrirAdmin={abrirAdmin} eliminar={eliminar} />
           </div>
         </div>
       </section>
+
+      <style>{`
+        .au-addBtn {
+          background-color: #0d2e6f;
+          color: #fff;
+          border: none;
+          padding: 8px 16px;
+          font-weight: 600;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: background 0.3s;
+        }
+        .au-addBtn:hover {
+          background-color: #143c91;
+        }
+        .au-formWrap {
+          max-height: 0;
+          overflow: hidden;
+          transition: max-height 0.4s ease, opacity 0.3s ease;
+          opacity: 0;
+        }
+        .au-formWrap.show {
+          max-height: 1200px;
+          opacity: 1;
+        }
+        .au-flexBetween {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+        .au-searchWrap {
+          width: 320px;
+          max-width: 100%;
+        }
+        .au-searchInput {
+          width: 100%;
+          padding: 10px 12px;
+          border-radius: 8px;
+          border: 1px solid #d4dde6;
+          outline: none;
+        }
+        .au-searchInput:focus {
+          border-color: #0d2e6f;
+          box-shadow: 0 0 0 3px rgba(13, 46, 111, 0.15);
+        }
+      `}</style>
     </div>
   );
 }

@@ -12,24 +12,45 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { supabase } from "../../supabase/client";
-import ToastStack from "../ToastStack";
 import NavbarAdm from "./NavbarAdm.jsx";
 import "./DOCSS/Admin.css";
 import Swal from "sweetalert2";
 import "@sweetalert2/themes/borderless/borderless.css";
+
+const Toast = ({ toasts, onClose }) => {
+  return (
+    <div className="au-toastHost" role="region" aria-live="polite">
+      {toasts.map((t) => (
+        <div key={t.id} className={`au-toast au-toast--${t.variant || "info"}`}>
+          <div className="au-toastIc">{t.icon || "ℹ️"}</div>
+          <div className="au-toastBody">
+            {t.title && <div className="au-toastTitle">{t.title}</div>}
+            <div className="au-toastMsg">{t.message}</div>
+          </div>
+          <button className="au-toastClose" onClick={() => onClose(t.id)}>×</button>
+          <div className="au-toastBar" style={{ animationDuration: `${t.ttl || 3800}ms` }} />
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export default function MunicipioDetalle() {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [toasts, setToasts] = useState([]);
-  const toast = (m, o = {}) => setToasts((t) => [...t, { id: crypto.randomUUID(), message: m, ...o }]);
   const closeToast = (id) => setToasts((t) => t.filter((x) => x.id !== id));
+  const pushToast = ({ message, title, icon, variant = "info", ttl = 3800 }) => {
+    const id = crypto.randomUUID();
+    setToasts((t) => [...t, { id, message, title, icon, variant, ttl }]);
+    window.setTimeout(() => closeToast(id), ttl);
+  };
   const notify = {
-    success: (msg, opts) => toast(msg, { title: "Listo", icon: "✅", variant: "success", ...opts }),
-    error: (msg, opts) => toast(msg, { title: "Revisa esto", icon: "⛔", variant: "error", ...opts }),
-    warn: (msg, opts) => toast(msg, { title: "Atención", icon: "⚠️", variant: "warning", ...opts }),
-    info: (msg, opts) => toast(msg, { title: "Info", icon: "ℹ️", variant: "info", ...opts }),
+    success: (msg, opts) => pushToast({ message: msg, title: "Listo", icon: "✅", variant: "success", ...opts }),
+    error: (msg, opts) => pushToast({ message: msg, title: "Revisa esto", icon: "⛔", variant: "error", ...opts }),
+    warn: (msg, opts) => pushToast({ message: msg, title: "Atención", icon: "⚠️", variant: "warning", ...opts }),
+    info: (msg, opts) => pushToast({ message: msg, title: "Info", icon: "ℹ️", variant: "info", ...opts }),
   };
 
   const [mun, setMun] = useState(null);
@@ -205,7 +226,7 @@ export default function MunicipioDetalle() {
     <div className="au-layout">
       <NavbarAdm />
       <section className="au-main au-mdet">
-        <ToastStack toasts={toasts} onClose={closeToast} />
+        <Toast toasts={toasts} onClose={closeToast} />
 
         <div className="au-mdet-hero">
           <div className="au-mdet-heroIn">
@@ -325,6 +346,72 @@ export default function MunicipioDetalle() {
           </div>
         </div>
       </section>
+
+      <style>{`
+        .au-toastHost {
+          position: fixed;
+          top: 16px;
+          right: 16px;
+          z-index: 9999;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          pointer-events: none;
+        }
+        .au-toast {
+          min-width: 280px;
+          max-width: 420px;
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          align-items: start;
+          gap: 10px 12px;
+          padding: 12px 12px 10px;
+          border-radius: 12px;
+          box-shadow: 0 10px 24px rgba(0,0,0,.12), 0 2px 6px rgba(0,0,0,.08);
+          background: #ffffff;
+          border: 1px solid #e8eef6;
+          pointer-events: auto;
+          position: relative;
+          overflow: hidden;
+          animation: au-toast-in .18s ease-out both;
+        }
+        .au-toastIc { font-size: 18px; line-height: 1; margin-top: 2px; }
+        .au-toastBody { display: grid; gap: 4px; }
+        .au-toastTitle { font-weight: 700; font-size: 14px; color: #0d2e6f; }
+        .au-toastMsg { font-size: 13px; color: #233042; }
+        .au-toastClose {
+          border: 0;
+          background: transparent;
+          font-size: 18px;
+          line-height: 1;
+          color: #5b6b7d;
+          cursor: pointer;
+          padding: 2px 6px;
+          border-radius: 8px;
+          transition: background .2s;
+        }
+        .au-toastClose:hover { background: rgba(13,46,111,.08); }
+        .au-toast--success { border-color: #d7f1df; box-shadow: 0 10px 24px rgba(17,141,87,.08), 0 2px 6px rgba(17,141,87,.06); }
+        .au-toast--error { border-color: #ffd9d9; box-shadow: 0 10px 24px rgba(204,0,0,.10), 0 2px 6px rgba(204,0,0,.06); }
+        .au-toast--warning { border-color: #ffe8bf; box-shadow: 0 10px 24px rgba(255,163,0,.10), 0 2px 6px rgba(255,163,0,.06); }
+        .au-toast--info { border-color: #dfe9ff; }
+        .au-toastBar {
+          position: absolute;
+          left: 0;
+          bottom: 0;
+          height: 3px;
+          width: 100%;
+          background: linear-gradient(90deg, rgba(13,46,111,.18), rgba(13,46,111,1));
+          animation-name: au-toast-bar;
+          animation-timing-function: linear;
+          animation-fill-mode: forwards;
+        }
+        .au-toast--success .au-toastBar { background: linear-gradient(90deg, rgba(0,140,78,.18), rgba(0,140,78,1)); }
+        .au-toast--error .au-toastBar { background: linear-gradient(90deg, rgba(204,0,0,.18), rgba(204,0,0,1)); }
+        .au-toast--warning .au-toastBar { background: linear-gradient(90deg, rgba(255,163,0,.18), rgba(255,163,0,1)); }
+        @keyframes au-toast-in { from { transform: translateY(-8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes au-toast-bar { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+      `}</style>
     </div>
   );
 }
