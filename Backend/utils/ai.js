@@ -1,7 +1,22 @@
-import OpenAI from "openai";
+// Backend/utils/ai.js
+import fs from "node:fs";
 
-if (!process.env.OPENAI_API_KEY) {
-  console.error("Falta OPENAI_API_KEY en el entorno (no en el repo).");
+const OPENAI_API_KEY = (process.env.OPENAI_API_KEY || "").replace(/\s/g, "");
+const OPENAI_PROJECT = (process.env.OPENAI_PROJECT || "").trim();
+
+function mask(s, keep = 6) {
+  if (!s) return "(vacío)";
+  return s.length <= keep * 2 ? "***" : s.slice(0, keep) + "…" + s.slice(-keep);
+}
+
+console.log("🔑 OPENAI_API_KEY:", OPENAI_API_KEY.startsWith("sk-proj-") ? "sk-proj-…" : mask(OPENAI_API_KEY));
+console.log("🧩 OPENAI_PROJECT:", OPENAI_PROJECT ? mask(OPENAI_PROJECT) : "(sin project)");
+
+if (!OPENAI_API_KEY) {
+  console.error("❌ Falta OPENAI_API_KEY en el entorno.");
+}
+if (OPENAI_API_KEY.startsWith("sk-proj-") && !OPENAI_PROJECT) {
+  console.error("❌ Usas clave de proyecto (sk-proj-…) pero falta OPENAI_PROJECT (proj_…).");
 }
 
 const SYSTEM_PROMPT_FALLBACK = `
@@ -44,10 +59,6 @@ EJECUCIÓN
 - Ajusta la recomendación a ese contexto; si falta, **pregunta**.
 `.trim();
 
-export const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 function buildMessages({ history = [], userText, context = {} }) {
   const sysFromEnv = (process.env.MIAGRO_SYSTEM_PROMPT || "").trim();
   const systemPrompt = [
@@ -57,42 +68,76 @@ function buildMessages({ history = [], userText, context = {} }) {
     context?.cultivo ? ` Cultivo: ${context.cultivo}.` : "",
   ].join("").trim();
 
-  const messages = [];
+  const msgs = [];
   if (history.length && history[0]?.role === "system") {
-    messages.push(...history);
+    msgs.push(...history);
   } else {
-    messages.push({ role: "system", content: systemPrompt });
-    messages.push(...history);
+    msgs.push({ role: "system", content: systemPrompt });
+    msgs.push(...history);
   }
-
-  if (userText) messages.push({ role: "user", content: userText });
-
-  const MAX_MSGS = 24;
-  return messages.slice(-MAX_MSGS);
+  if (userText) msgs.push({ role: "user", content: userText });
+  return msgs.slice(-24);
 }
 
 export async function askOpenAI(
   messagesOrParams,
   opts = { temperature: 0.3, model: "gpt-4o-mini", max_tokens: 900 }
 ) {
-  let messages;
-  if (Array.isArray(messagesOrParams)) {
-    const hasSystem = messagesOrParams[0]?.role === "system";
-    messages = hasSystem
-      ? messagesOrParams
-      : [{ role: "system", content: SYSTEM_PROMPT_FALLBACK }, ...messagesOrParams];
-  } else {
-    messages = buildMessages(messagesOrParams || {});
+  if (!OPENAI_API_KEY) {
+    const e = new Error("Falta OPENAI_API_KEY.");
+    e.status = 500; throw e;
+  }
+  if (OPENAI_API_KEY.startsWith("sk-proj-") && !OPENAI_PROJECT) {
+    const e = new Error("Falta OPENAI_PROJECT para clave de proyecto.");
+    e.status = 500; throw e;
   }
 
-  const resp = await openai.chat.completions.create({
+  const messages = Array.isArray(messagesOrParams)
+    ? (messagesOrParams[0]?.role === "system"
+        ? messagesOrParams
+        : [{ role: "system", content: SYSTEM_PROMPT_FALLBACK }, ...messagesOrParams])
+    : buildMessages(messagesOrParams || {});
+
+  // === Llamada directa con fetch, enviando OpenAI-Project si aplica ===
+  const headers = {
+    "Authorization": `Bearer ${OPENAI_API_KEY}`,
+    "Content-Type": "application/json",
+  };
+  if (OPENAI_API_KEY.startsWith("sk-proj-") && OPENAI_PROJECT) {
+    headers["OpenAI-Project"] = OPENAI_PROJECT;
+  }
+
+  const body = {
     model: opts?.model ?? "gpt-4o-mini",
     temperature: opts?.temperature ?? 0.3,
     max_tokens: opts?.max_tokens ?? 900,
     messages,
-  });
+  };
 
-  return resp.choices[0]?.message?.content?.trim() || "";
+  let resp;
+  try {
+    resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    });
+  } catch {
+    const e = new Error("Error de red al llamar a OpenAI.");
+    e.status = 502; throw e;
+  }
+
+  if (!resp.ok) {
+    // 401/403 → credenciales mal
+    if (resp.status === 401 || resp.status === 403) {
+      const e = new Error("Credenciales de OpenAI inválidas o faltantes.");
+      e.status = 502; throw e;
+    }
+    const e = new Error("Error llamando al modelo de OpenAI.");
+    e.status = 502; throw e;
+  }
+
+  const data = await resp.json();
+  return data?.choices?.[0]?.message?.content?.trim() || "";
 }
 
 export { buildMessages };
