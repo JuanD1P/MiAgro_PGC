@@ -1,4 +1,3 @@
-// Backend/utils/ai.js
 import fs from "node:fs";
 
 const OPENAI_API_KEY = (process.env.OPENAI_API_KEY || "").replace(/\s/g, "");
@@ -111,7 +110,7 @@ export async function askOpenAI(
         : [{ role: "system", content: SYSTEM_PROMPT_FALLBACK }, ...messagesOrParams])
     : buildMessages(messagesOrParams || {});
 
-  // === Llamada directa con fetch, enviando OpenAI-Project si aplica ===
+
   const headers = {
     "Authorization": `Bearer ${OPENAI_API_KEY}`,
     "Content-Type": "application/json",
@@ -140,7 +139,6 @@ export async function askOpenAI(
   }
 
   if (!resp.ok) {
-    // 401/403 → credenciales mal
     if (resp.status === 401 || resp.status === 403) {
       const e = new Error("Credenciales de OpenAI inválidas o faltantes.");
       e.status = 502; throw e;
