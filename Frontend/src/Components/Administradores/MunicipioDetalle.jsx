@@ -254,6 +254,7 @@ export default function MunicipioDetalle() {
               </label>
               <div className="au-mdet-coverOverlay" />
             </div>
+            
 
             <div className="au-mdet-panel">
               <div className="au-mdet-panelHead">
@@ -286,18 +287,22 @@ export default function MunicipioDetalle() {
             <div className="au-mdet-sideCard">
               <div className="au-mdet-sideHead">
                 <h4 className="au-mdet-sideTitle">Agregar desde catálogo</h4>
+                
                 <div className="au-mdet-search">
                   <input
                     value={buscador}
                     onChange={(e) => setBuscador(e.target.value)}
                     placeholder="Buscar producto"
                     className="au-mdet-searchInput"
+                    
                   />
+                  
                 </div>
               </div>
+              
 
               <div className="au-mdet-tags">
-                <button onClick={() => setBuscador("")} className={`au-mdet-tag ${buscador === "" ? "is-active" : ""}`}>Todos</button>
+                <button className="au-mdet-back" onClick={() => navigate("/admin/municipios")}>← Volver</button>
               </div>
 
               <div className="au-mdet-catGrid">
@@ -330,20 +335,12 @@ export default function MunicipioDetalle() {
                 {!filtrados.length && <div className="au-listEmpty au-gridFull">No hay productos en el catálogo</div>}
               </div>
             </div>
+            
 
             <div className="au-mdet-sideSticky">
               <button className="au-mdet-back" onClick={() => navigate("/admin/municipios")}>← Volver</button>
             </div>
           </aside>
-        </div>
-
-        <div className="au-mdet-footer">
-          <div className="au-mdet-footIn">
-            <div className="au-mdet-footHint">Los cambios se guardan en tiempo real</div>
-            <div className="au-mdet-footActions">
-              <button className="au-btnDanger au-btnLight" onClick={() => navigate("/admin/municipios")}>Listo</button>
-            </div>
-          </div>
         </div>
       </section>
 

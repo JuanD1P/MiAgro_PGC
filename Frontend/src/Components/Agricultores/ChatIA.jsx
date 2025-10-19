@@ -63,6 +63,8 @@ export default function ChatIA() {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+
+  // error visible (evitamos falsos positivos)
   const [error, setError] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -82,14 +84,16 @@ export default function ChatIA() {
       toastTimerRef.current = setTimeout(() => setToast((t) => ({ ...t, open: false })), autoHideMs);
     }
   };
+  useEffect(() => () => toastTimerRef.current && clearTimeout(toastTimerRef.current), []);
 
   const [confirmState, setConfirmState] = useState({ open: false, convoId: null });
-  useEffect(() => () => toastTimerRef.current && clearTimeout(toastTimerRef.current), []);
 
   const [aiTyping, setAiTyping] = useState(false);
   const [reveal, setReveal] = useState({});
   const revealTimers = useRef({});
+  const msgRetryTimer = useRef(null);
 
+  // ===== LISTA DE CONVERSACIONES =====
   useEffect(() => {
     if (!user?.uid) return;
     let unsub = () => {};
@@ -103,14 +107,14 @@ export default function ChatIA() {
           setLoadingConvos(false);
         },
         () => {
+          // fallback sin orderBy por si falta índice
           const q2 = query(base, where("owner", "==", user.uid));
           unsub = onSnapshot(
             q2,
             (snap2) => {
               const rows = snap2.docs
                 .map((d) => ({ id: d.id, ...d.data() }))
-                .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
-                .reverse();
+                .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
               setConvos(rows);
               setLoadingConvos(false);
             },
@@ -124,29 +128,70 @@ export default function ChatIA() {
     return () => unsub && unsub();
   }, [user?.uid]);
 
+  // ===== MENSAJES DE LA CONVERSACIÓN =====
   useEffect(() => {
+    // limpiar timers anteriores
+    if (msgRetryTimer.current) { clearTimeout(msgRetryTimer.current); msgRetryTimer.current = null; }
+    setError("");
+
     if (!conversationId) { setMessages([]); return; }
-    const msgsRef = collection(db, "conversations", conversationId, "messages");
-    const q = query(msgsRef, orderBy("createdAt", "asc"), orderBy(documentId()));
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        rows.sort((a, b) => {
-          const ta = a.createdAt?.toMillis?.() ?? 0;
-          const tb = b.createdAt?.toMillis?.() ?? 0;
-          if (ta !== tb) return ta - tb;
-          const wa = a.role === "user" ? 0 : 1;
-          const wb = b.role === "user" ? 0 : 1;
-          if (wa !== wb) return wa - wb;
-          return a.id.localeCompare(b.id);
-        });
-        setMessages(rows);
-        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "instant" }), 10);
-      },
-      (err) => setError(err.message || "Error al leer mensajes")
-    );
-    return unsub;
+
+    let unsub = null;
+    let cancelled = false;
+    let attempts = 0;
+
+    const subscribe = () => {
+      if (cancelled) return;
+      try {
+        const msgsRef = collection(db, "conversations", conversationId, "messages");
+        const q = query(msgsRef, orderBy("createdAt", "asc"), orderBy(documentId()));
+        unsub = onSnapshot(
+          q,
+          (snap) => {
+            // éxito: limpiar error y timers de reveal previos
+            setError("");
+            const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+            rows.sort((a, b) => {
+              const ta = a.createdAt?.toMillis?.() ?? 0;
+              const tb = b.createdAt?.toMillis?.() ?? 0;
+              if (ta !== tb) return ta - tb;
+              const wa = a.role === "user" ? 0 : 1;
+              const wb = b.role === "user" ? 0 : 1;
+              if (wa !== wb) return wa - wb;
+              return a.id.localeCompare(b.id);
+            });
+            setMessages(rows);
+            setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "instant" }), 10);
+          },
+          (err) => {
+            // Si es permiso-denegado, reintentamos (el backend puede tardar ms en asignar owner)
+            const code = err?.code || "";
+            if (code === "permission-denied" || /insufficient permissions/i.test(err?.message || "")) {
+              attempts += 1;
+              if (attempts <= 10 && !cancelled) {
+                msgRetryTimer.current = setTimeout(subscribe, 500);
+                return;
+              }
+            }
+            setError(err.message || "Error al leer mensajes");
+          }
+        );
+      } catch (e) {
+        attempts += 1;
+        if (attempts <= 10 && !cancelled) {
+          msgRetryTimer.current = setTimeout(subscribe, 500);
+        } else {
+          setError(e.message || "Error suscribiendo mensajes");
+        }
+      }
+    };
+
+    subscribe();
+
+    return () => {
+      cancelled = true;
+      if (unsub) unsub();
+    };
   }, [conversationId]);
 
   const normalizedMessages = useMemo(
@@ -154,16 +199,18 @@ export default function ChatIA() {
     [messages]
   );
 
+  // animación de revelado + estado "escribiendo"
   useEffect(() => {
     const last = normalizedMessages[normalizedMessages.length - 1];
     if (!last) return;
     if (last.role === "user") setAiTyping(true);
     else setAiTyping(false);
+
     normalizedMessages.forEach((m) => {
       if (m.role === "assistant" && !reveal[m.id]) {
         const full = m.normalized;
         let i = 0;
-        revealTimers.current[m.id] && clearInterval(revealTimers.current[m.id]);
+        if (revealTimers.current[m.id]) clearInterval(revealTimers.current[m.id]);
         revealTimers.current[m.id] = setInterval(() => {
           i += Math.max(1, Math.floor(full.length / 200));
           const slice = full.slice(0, i);
@@ -172,7 +219,7 @@ export default function ChatIA() {
         }, 16);
       }
     });
-  }, [normalizedMessages]);
+  }, [normalizedMessages]); // eslint-disable-line
 
   const currentTitle = useMemo(() => {
     const c = convos.find((c) => c.id === conversationId);
@@ -222,8 +269,23 @@ export default function ChatIA() {
   };
   useEffect(() => { autoResize(); }, [text]);
 
+  // ===== ENVIAR MENSAJE (con render optimista) =====
   const send = async () => {
-    if (!text.trim() || sending) return;
+    const clean = text.trim();
+    if (!clean || sending) return;
+
+    // pinta de una vez el mensaje del usuario
+    const tempId = `temp-${Date.now()}`;
+    const optimistic = {
+      id: tempId,
+      role: "user",
+      content: clean,
+      createdAt: { toMillis: () => Date.now() }
+    };
+    setMessages((prev) => [...prev, optimistic]);
+    setText("");
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "instant" }), 10);
+
     setSending(true);
     setError("");
     setAiTyping(true);
@@ -236,17 +298,19 @@ export default function ChatIA() {
           Authorization: `Bearer ${token}`,
         },
         credentials: "include",
-        body: JSON.stringify({ text, conversationId }),
+        body: JSON.stringify({ text: clean, conversationId }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+
       if (!conversationId && data?.conversationId) {
         localStorage.setItem("convId", data.conversationId);
-        setConversationId(data.conversationId);
+        setConversationId(data.conversationId); // dispara la suscripción
       }
-      setText("");
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "instant" }), 10);
+      // el onSnapshot traerá los mensajes reales -> no necesitamos más aquí
     } catch (e) {
+      // revertimos optimista si hubo error real
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
       setError(e.message || "Error enviando mensaje");
       setAiTyping(false);
     } finally {
@@ -260,6 +324,10 @@ export default function ChatIA() {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       send();
+    }
+    // tip: abrir/cerrar sidebar con Ctrl+B (opcional)
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+      setSidebarOpen((v) => !v);
     }
   };
 
@@ -329,7 +397,6 @@ export default function ChatIA() {
         <main className="chatia__main">
           <div className="chatia__headerMain">
             <div className="chatia__current">{currentTitle}</div>
-
           </div>
 
           <div className="chatia__thread" aria-live="polite">
@@ -386,7 +453,8 @@ export default function ChatIA() {
             <div ref={bottomRef} />
           </div>
 
-          {error && <div className="chatia__error">{error}</div>}
+          {/* Solo mostramos error real y sólo si hay conversación seleccionada */}
+          {error && conversationId && <div className="chatia__error">{error}</div>}
 
           <form onSubmit={onSubmit} className="chatia__composer">
             <div className="chatia__inputWrap">

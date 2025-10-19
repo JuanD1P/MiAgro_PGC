@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
-import { Link } from "react-router-dom";
+// import { Link } from "react-router-dom"; // ya no usamos Link
 import { db } from "../../firebase/client";
-import { collection, addDoc, onSnapshot, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, deleteDoc, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { supabase } from "../../supabase/client";
 import NavbarAdm from "./NavbarAdm.jsx";
 import "./DOCSS/Productos.css";
@@ -96,6 +96,10 @@ export default function ProductosAdmin() {
   const [loading, setLoading] = useState(false);
   const [productos, setProductos] = useState([]);
 
+  // búsqueda en LISTA de productos (nuevo)
+  const [qList, setQList] = useState("");
+
+  // combo de selección para el form
   const [filtro, setFiltro] = useState("");
   const [openList, setOpenList] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
@@ -109,10 +113,15 @@ export default function ProductosAdmin() {
     altMin:  "", altMax:  ""
   });
 
+  // MODO EDICIÓN
+  const [editing, setEditing] = useState(null);
+  const isEditing = !!editing;
+
   const inputRef = useRef(null);
   const listRef = useRef(null);
   const formRef = useRef(null);
 
+  // Cargar lista
   useEffect(() => {
     const unsub = onSnapshot(
       collection(db, "productos"),
@@ -122,9 +131,24 @@ export default function ProductosAdmin() {
     return unsub;
   }, []);
 
+  // Scroll al formulario cuando se muestre
   useEffect(() => {
-    if (showForm && formRef.current) formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (showForm && formRef.current) {
+      formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }, [showForm]);
+
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    if (!openList) return;
+    const onDocClick = (e) => {
+      const inInput = inputRef.current && inputRef.current.contains(e.target);
+      const inList  = listRef.current && listRef.current.contains(e.target);
+      if (!inInput && !inList) setOpenList(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [openList]);
 
   const productosExistentes = useMemo(
     () => productos.map(p => (p.nombre || "").toLowerCase().trim()),
@@ -140,6 +164,13 @@ export default function ProductosAdmin() {
   }, [filtro, productosExistentes]);
 
   const visibleOptions = useMemo(() => opcionesFiltradas.slice(0,8), [opcionesFiltradas]);
+
+  // FILTRO de la grilla
+  const productosFiltrados = useMemo(() => {
+    const q = qList.trim().toLowerCase();
+    if (!q) return productos;
+    return productos.filter(p => (p.nombre || "").toLowerCase().includes(q));
+  }, [qList, productos]);
 
   const onFile = (f) => {
     if (!f) return notify.warn("Selecciona una imagen válida");
@@ -162,13 +193,20 @@ export default function ProductosAdmin() {
     notify.info("Imagen removida", { duration: 1800 });
   };
 
+  const clearSearch = useCallback(() => {
+    setFiltro("");
+    setNombre("");
+    setOpenList(false);
+    inputRef.current?.focus();
+  }, []);
+
   const parseMaybe = (s) => {
     if (s === "" || s === null || s === undefined) return null;
     const n = Number(String(s).replace(",", "."));
     return Number.isFinite(n) ? n : NaN;
   };
 
-  const validarAntesDeGuardar = () => {
+  const validarAntesDeGuardar = (requireImage = true) => {
     const tMin = parseMaybe(rangos.tempMin);
     const tMax = parseMaybe(rangos.tempMax);
     const hMin = parseMaybe(rangos.humMin);
@@ -181,7 +219,7 @@ export default function ProductosAdmin() {
     const req = (cond, msg) => { if (cond) errors.push(msg); };
     req(!nombre.trim(), "Escribe o selecciona el nombre del producto");
     req(!tipo.trim(), "Selecciona el tipo de producto");
-    req(!file, "Agrega una imagen del producto");
+    req(requireImage && !file && !preview, "Agrega una imagen del producto");
 
     const inRange = (n, lo, hi) => n >= lo && n <= hi;
 
@@ -232,26 +270,38 @@ export default function ProductosAdmin() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    const docAgro = validarAntesDeGuardar();
+    const docAgro = validarAntesDeGuardar(!isEditing);
     if (!docAgro) return;
     try {
       setLoading(true);
-      notify.info("Subiendo imagen…", { duration: 2200 });
-      const url = await uploadToSupabase(file, nombre);
-      await addDoc(collection(db, "productos"), {
+
+      let url = editing?.url || "";
+      if (file) {
+        notify.info("Subiendo imagen…", { duration: 2200 });
+        url = await uploadToSupabase(file, nombre);
+      } else if (!preview && !isEditing) {
+        notify.warn("Falta la imagen");
+        setLoading(false);
+        return;
+      }
+
+      const payload = {
         nombre: nombre.trim(),
         tipo: tipo.trim(),
         url,
-        creadoEn: serverTimestamp(),
-        agro: docAgro
-      });
-      notify.success("Producto creado");
-      setAgro({ cicloDias:"", epocas:[] });
-      setRangos({ tempMin:"", tempMax:"", humMin:"", humMax:"", altMin:"", altMax:"" });
-      setNombre(""); setTipo("");
-      setFile(null); setPreview("");
-      setFiltro(""); setOpenList(false);
-      setShowForm(false);
+        agro: docAgro,
+        ...(isEditing ? {} : { creadoEn: serverTimestamp() }),
+      };
+
+      if (isEditing) {
+        await updateDoc(doc(db, "productos", editing.id), payload);
+        notify.success("Producto actualizado");
+      } else {
+        await addDoc(collection(db, "productos"), payload);
+        notify.success("Producto creado");
+      }
+
+      resetForm();
     } catch (err) {
       notify.error(err.message || "Error al guardar");
     } finally {
@@ -299,11 +349,49 @@ export default function ProductosAdmin() {
   const handleAltMin  = useCallback((v)=>setRangos(s=>({...s,altMin:v})),[]);
   const handleAltMax  = useCallback((v)=>setRangos(s=>({...s,altMax:v})),[]);
 
+  const startEdit = (p) => {
+    setEditing(p);
+    setShowForm(true);
+    setNombre(p.nombre || "");
+    setFiltro(p.nombre || "");
+    setTipo(p.tipo || "");
+    setPreview(p.url || "");
+    setFile(null);
+
+    const a = p.agro || {};
+    setRangos({
+      tempMin: a.temperatura?.min?.toString() ?? "",
+      tempMax: a.temperatura?.max?.toString() ?? "",
+      humMin:  a.humedad?.min?.toString() ?? "",
+      humMax:  a.humedad?.max?.toString() ?? "",
+      altMin:  a.altitud?.min?.toString() ?? "",
+      altMax:  a.altitud?.max?.toString() ?? "",
+    });
+    setAgro({
+      cicloDias: a.cicloDias != null ? String(a.cicloDias) : "",
+      epocas: a.epocasSiembra || a.epocas || [],
+    });
+
+    // asegúrate de subir hasta el formulario
+    requestAnimationFrame(() => {
+      if (formRef.current) formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
+  const resetForm = () => {
+    setAgro({ cicloDias:"", epocas:[] });
+    setRangos({ tempMin:"", tempMax:"", humMin:"", humMax:"", altMin:"", altMax:"" });
+    setNombre(""); setTipo("");
+    setFile(null); setPreview("");
+    setFiltro(""); setOpenList(false);
+    setEditing(null);
+    setShowForm(false);
+  };
+
   const eliminar = async (p) => {
     const { isConfirmed } = await Swal.fire({
       icon: "warning",
       title: "¿Eliminar producto?",
-
       showCancelButton: true,
       confirmButtonText: "Sí, eliminar",
       cancelButtonText: "Cancelar",
@@ -311,11 +399,6 @@ export default function ProductosAdmin() {
       focusConfirm: false,
       buttonsStyling: false,
       customClass: { popup: "au-sw-popup", title: "au-sw-title", actions: "au-sw-actions", confirmButton: "au-sw-confirm", cancelButton: "au-sw-cancel" },
-      willOpen: () => {
-        const note = document.getElementById("sw-del-note");
-        const ctr = document.getElementById("sw-del-ctr");
-        if (note && ctr) note.addEventListener("input", () => ctr.textContent = `${note.value.length} / 180`);
-      },
       preConfirm: () => {
         const v = (document.getElementById("sw-del-confirm")?.value || "").trim().toUpperCase();
         if (v !== "ELIMINAR") {
@@ -355,7 +438,7 @@ export default function ProductosAdmin() {
           <button
             className="au-btnPrimary au-btnAdd"
             type="button"
-            onClick={()=>setShowForm(v=>!v)}
+            onClick={()=> setShowForm(v => { if (!v) setEditing(null); return !v; })}
             aria-expanded={showForm}
             aria-controls="pro-form-card"
           >
@@ -363,10 +446,22 @@ export default function ProductosAdmin() {
           </button>
         </header>
 
+        {/* Búsqueda en la lista */}
+        <div className="pro-searchbar">
+          <input
+            className="pro-searchInput"
+            type="text"
+            placeholder="Buscar producto"
+            value={qList}
+            onChange={(e)=>setQList(e.target.value)}
+            aria-label="Buscar producto por nombre"
+          />
+        </div>
+
         {showForm && (
           <div className="au-card" id="pro-form-card" ref={formRef}>
             <div className="au-cardHead">
-              <div className="au-chip">Nuevo producto</div>
+              <div className="au-chip">{isEditing ? "Editar producto" : "Nuevo producto"}</div>
             </div>
 
             <div className="au-pad16">
@@ -399,7 +494,7 @@ export default function ProductosAdmin() {
                             <button
                               type="button"
                               className="au-pro-clear"
-                              onClick={()=>{ setFiltro(""); setNombre(""); inputRef.current?.focus(); }}
+                              onClick={clearSearch}
                               aria-label="Limpiar búsqueda"
                             >
                               ✕
@@ -493,8 +588,8 @@ export default function ProductosAdmin() {
                           placeholderMax="28"
                           minValue={rangos.tempMin}
                           maxValue={rangos.tempMax}
-                          onMinChange={v=>setRangos(s=>({...s,tempMin:v}))}
-                          onMaxChange={v=>setRangos(s=>({...s,tempMax:v}))}
+                          onMinChange={handleTempMin}
+                          onMaxChange={handleTempMax}
                           maxLen={4}
                         />
                         <RangeFree
@@ -504,8 +599,8 @@ export default function ProductosAdmin() {
                           placeholderMax="80"
                           minValue={rangos.humMin}
                           maxValue={rangos.humMax}
-                          onMinChange={v=>setRangos(s=>({...s,humMin:v}))}
-                          onMaxChange={v=>setRangos(s=>({...s,humMax:v}))}
+                          onMinChange={handleHumMin}
+                          onMaxChange={handleHumMax}
                           maxLen={4}
                         />
                         <RangeFree
@@ -515,8 +610,8 @@ export default function ProductosAdmin() {
                           placeholderMax="2600"
                           minValue={rangos.altMin}
                           maxValue={rangos.altMax}
-                          onMinChange={v=>setRangos(s=>({...s,altMin:v}))}
-                          onMaxChange={v=>setRangos(s=>({...s,altMax:v}))}
+                          onMinChange={handleAltMin}
+                          onMaxChange={handleAltMax}
                           maxLen={4}
                         />
                         <div className="au-field">
@@ -557,9 +652,9 @@ export default function ProductosAdmin() {
 
                 <div className="au-actions">
                   <button type="submit" disabled={loading} className="au-btnPrimary pro-btnSave">
-                    {loading ? "Guardando..." : "Guardar"}
+                    {loading ? "Guardando..." : (isEditing ? "Actualizar" : "Guardar")}
                   </button>
-                  <button type="button" className="au-btnGhost" onClick={()=>setShowForm(false)}>Cancelar</button>
+                  <button type="button" className="au-btnGhost" onClick={resetForm}>Cancelar</button>
                 </div>
               </form>
             </div>
@@ -570,12 +665,12 @@ export default function ProductosAdmin() {
           <div className="au-cardHead">
             <h3 className="au-title au-title-sm">Registrados</h3>
             <div className="au-cardActions">
-              <span className="au-chip">{productos.length} productos</span>
+              <span className="au-chip">{productosFiltrados.length} productos</span>
             </div>
           </div>
           <div className="au-pad16">
             <div className="au-cardsGrid">
-              {productos.map((p) => (
+              {productosFiltrados.map((p) => (
                 <article key={p.id} className="pro-card">
                   <div className="pro-thumb">
                     {p.url ? <img src={p.url} alt={p.nombre} loading="lazy" decoding="async" /> : <div className="pro-thumbEmpty">Sin imagen</div>}
@@ -590,13 +685,19 @@ export default function ProductosAdmin() {
                       {p.agro?.cicloDias ? <span className="pro-chip">{p.agro.cicloDias} días</span> : null}
                     </div>
                     <div className="pro-actions">
-                      <Link to={`/admin/productos/${p.id}`} className="au-btnPrimary au-btnSm">Administrar contenido</Link>
+                      <button
+                        type="button"
+                        onClick={() => startEdit(p)}
+                        className="au-btnPrimary au-btnSm"
+                      >
+                        Administrar contenido
+                      </button>
                       <button onClick={() => eliminar(p)} className="au-btnDanger au-btnSm">Eliminar</button>
                     </div>
                   </div>
                 </article>
               ))}
-              {!productos.length && <div className="au-empty pro-empty">No hay productos</div>}
+              {!productosFiltrados.length && <div className="au-empty pro-empty">No hay productos</div>}
             </div>
           </div>
         </div>

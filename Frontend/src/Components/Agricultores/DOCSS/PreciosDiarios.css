@@ -379,3 +379,47 @@ b{font-weight:900}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse{0%,100%{opacity:.75;transform:translateY(0)}50%{opacity:1;transform:translateY(-1px)}}
 
+
+.tiles{
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+}
+
+
+@media (max-width: 1280px){
+  .tiles{ grid-template-columns: repeat(3, minmax(0,1fr)); }
+}
+@media (max-width: 900px){
+  .tiles{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@media (max-width: 560px){
+  .tiles{ grid-template-columns: 1fr; }
+}
+
+
+.tile__mediaOverlay{ 
+  display: none !important;      
+  background: transparent !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+
+.tile__media::before,
+.tile__media::after{
+  display: none !important;
+  content: none !important;
+  background: transparent !important;
+  opacity: 0 !important;
+}
+
+
+.tile__media img{
+  display: block;
+  width: 100%;
+  height: 220px;             
+  object-fit: cover;
+  border-radius: 16px;        
+}
+
