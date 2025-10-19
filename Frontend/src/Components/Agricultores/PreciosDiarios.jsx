@@ -82,7 +82,7 @@ export default function PreciosDiarios() {
     const y = fecha.slice(0, 4);
     const m = Math.max(0, Math.min(11, Number(fecha.slice(4, 6)) - 1));
     const d = String(Number(fecha.slice(6, 8)));
-    return `boletín ${d} de ${meses[m]} del ${y}`;
+    return `Boletín ${d} de ${meses[m]} del ${y}`;
   })();
 
   const parseMoney = (v) => {
