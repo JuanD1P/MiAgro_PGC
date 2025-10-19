@@ -70,14 +70,17 @@ function App() {
                         </ProtectedRoute>
                     } />
 
+                    </Route>
+                    
+                    <Route element={<LayoutWithNavbar2 />}>
                     <Route path="/ChatIA" element={
                         <ProtectedRoute allowedRoles={['USER']}>
                             <ChatIA />
                         </ProtectedRoute>
                     } />
+                   </Route>
 
-
-                </Route>
+                
 
     
 

@@ -12,10 +12,8 @@ import {
   documentId,
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-
 import "./DOCSS/ChatIA.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -45,6 +43,16 @@ function ConfirmDialog({ open, title = "Confirmar", message, onConfirm, onCancel
   );
 }
 
+function TypingDots() {
+  return (
+    <div className="typing">
+      <span className="dot" />
+      <span className="dot" />
+      <span className="dot" />
+    </div>
+  );
+}
+
 export default function ChatIA() {
   const auth = getAuth();
   const user = auth.currentUser;
@@ -65,7 +73,6 @@ export default function ChatIA() {
   const inputRef = useRef(null);
   const textRef = useRef(null);
 
-
   const [toast, setToast] = useState({ open: false, status: "idle", msg: "" });
   const toastTimerRef = useRef(null);
   const showToast = (status, msg, autoHideMs = 2000) => {
@@ -76,11 +83,12 @@ export default function ChatIA() {
     }
   };
 
-
   const [confirmState, setConfirmState] = useState({ open: false, convoId: null });
-
   useEffect(() => () => toastTimerRef.current && clearTimeout(toastTimerRef.current), []);
 
+  const [aiTyping, setAiTyping] = useState(false);
+  const [reveal, setReveal] = useState({});
+  const revealTimers = useRef({});
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -101,10 +109,8 @@ export default function ChatIA() {
             (snap2) => {
               const rows = snap2.docs
                 .map((d) => ({ id: d.id, ...d.data() }))
-                .sort(
-                  (a, b) =>
-                    (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0)
-                ).reverse();
+                .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
+                .reverse();
               setConvos(rows);
               setLoadingConvos(false);
             },
@@ -118,12 +124,9 @@ export default function ChatIA() {
     return () => unsub && unsub();
   }, [user?.uid]);
 
-
   useEffect(() => {
     if (!conversationId) { setMessages([]); return; }
     const msgsRef = collection(db, "conversations", conversationId, "messages");
-
-  
     const q = query(msgsRef, orderBy("createdAt", "asc"), orderBy(documentId()));
     const unsub = onSnapshot(
       q,
@@ -139,7 +142,7 @@ export default function ChatIA() {
           return a.id.localeCompare(b.id);
         });
         setMessages(rows);
-        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "instant" }), 10);
       },
       (err) => setError(err.message || "Error al leer mensajes")
     );
@@ -151,9 +154,29 @@ export default function ChatIA() {
     [messages]
   );
 
+  useEffect(() => {
+    const last = normalizedMessages[normalizedMessages.length - 1];
+    if (!last) return;
+    if (last.role === "user") setAiTyping(true);
+    else setAiTyping(false);
+    normalizedMessages.forEach((m) => {
+      if (m.role === "assistant" && !reveal[m.id]) {
+        const full = m.normalized;
+        let i = 0;
+        revealTimers.current[m.id] && clearInterval(revealTimers.current[m.id]);
+        revealTimers.current[m.id] = setInterval(() => {
+          i += Math.max(1, Math.floor(full.length / 200));
+          const slice = full.slice(0, i);
+          setReveal((r) => ({ ...r, [m.id]: slice }));
+          if (slice.length >= full.length) clearInterval(revealTimers.current[m.id]);
+        }, 16);
+      }
+    });
+  }, [normalizedMessages]);
+
   const currentTitle = useMemo(() => {
     const c = convos.find((c) => c.id === conversationId);
-    return c?.title || "Nueva conversación";
+    return c?.title || "Listo para Ayudarte";
   }, [convos, conversationId]);
 
   const formatDate = (ts) => {
@@ -170,6 +193,8 @@ export default function ChatIA() {
     setMessages([]);
     setText("");
     setSidebarOpen(false);
+    setError("");
+    setReveal({});
     inputRef.current?.focus();
   };
 
@@ -178,6 +203,7 @@ export default function ChatIA() {
     setConversationId(id);
     setSidebarOpen(false);
     setError("");
+    setReveal({});
   };
 
   const getBearer = async () => {
@@ -189,7 +215,7 @@ export default function ChatIA() {
   const autoResize = () => {
     const el = textRef.current;
     if (!el) return;
-    const MAX = 180;
+    const MAX = 120;
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, MAX) + "px";
     el.style.overflowY = el.scrollHeight > MAX ? "auto" : "hidden";
@@ -200,6 +226,7 @@ export default function ChatIA() {
     if (!text.trim() || sending) return;
     setSending(true);
     setError("");
+    setAiTyping(true);
     try {
       const token = await getBearer();
       const res = await fetch(`${API_URL}/api/ai/chat`, {
@@ -213,15 +240,15 @@ export default function ChatIA() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-
       if (!conversationId && data?.conversationId) {
         localStorage.setItem("convId", data.conversationId);
         setConversationId(data.conversationId);
       }
       setText("");
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "instant" }), 10);
     } catch (e) {
       setError(e.message || "Error enviando mensaje");
+      setAiTyping(false);
     } finally {
       setSending(false);
     }
@@ -236,16 +263,13 @@ export default function ChatIA() {
     }
   };
 
-
   const requestDeleteConversation = (id) => {
     setConfirmState({ open: true, convoId: id });
   };
 
-
   const actuallyDeleteConversation = async () => {
     const id = confirmState.convoId;
     setConfirmState({ open: false, convoId: null });
-
     showToast("loading", "Eliminando conversación…", 0);
     try {
       const snaps = await getDocs(collection(db, "conversations", id, "messages"));
@@ -262,32 +286,17 @@ export default function ChatIA() {
 
   return (
     <div className="chatia">
-      {/* Header superior */}
-      <header className="chatia__top">
-        <button
-          className="chatia__burger"
-          onClick={() => setSidebarOpen((v) => !v)}
-          aria-label="Abrir historial"
-        >
-          ☰
-        </button>
-        <div className="chatia__brand">
-          <span className="chatia__logo" aria-hidden>🌱</span>
-          <div>
-            <h2 className="chatia__title">Mi Agro IA</h2>
-            <p className="chatia__subtitle">Recomendaciones claras para ti</p>
-          </div>
-        </div>
-      </header>
-
       <div className={`chatia__layout ${sidebarOpen ? "is-open" : ""}`}>
-        {/* Sidebar */}
         <aside className="chatia__sidebar">
-          <div className="chatia__sidebarHead">
-            <h3>Historial</h3>
-            {/* 🔥 Botón eliminado del Historial */}
+          <div className="chatia__sidebarIntro">
+            <div className="intro__badge">MiAgro IA</div>
+            <h3 className="intro__title">inteligencia para sembrar mejor</h3>
+            <p className="intro__desc">Asistente que te ayuda a consultar datos, analizar precios, generar ideas y documentar procesos agrícolas.</p>
           </div>
-
+          <div className="chatia__sidebarHead">
+            <h4 className="hist__title">Historial</h4>
+            <button className="hist__new" onClick={newChat}>+ Nuevo</button>
+          </div>
           <div className="chatia__convos">
             {loadingConvos ? (
               <div className="chatia__empty small">Cargando…</div>
@@ -317,44 +326,62 @@ export default function ChatIA() {
           </div>
         </aside>
 
-        {/* Main */}
         <main className="chatia__main">
           <div className="chatia__headerMain">
             <div className="chatia__current">{currentTitle}</div>
-            {/* ✅ Botón “+ Nuevo chat” ahora aquí */}
-            <button className="chatia__headerBtn" onClick={newChat}>+ Nuevo chat</button>
+
           </div>
 
           <div className="chatia__thread" aria-live="polite">
             {normalizedMessages.length === 0 ? (
-              <div className="chatia__placeholder">
-                {conversationId ? "Cargando conversación…" : "Envía tu primera pregunta para comenzar."}
+              <div className="chatia__emptyState">
+                <img src="/chat.png" alt="MiAgro IA" className="empty__img" />
+                <div className="empty__title">{currentTitle}</div>
+                <div className="empty__hint">Escribe tu primera pregunta para comenzar</div>
               </div>
             ) : (
               normalizedMessages.map((m) => {
                 const isUser = m.role === "user";
+                const textShown = isUser ? m.normalized : (reveal[m.id] ?? "");
                 const handleCopy = async () => {
                   try { await navigator.clipboard.writeText(m.normalized || ""); } catch {}
                 };
                 return (
-                  <div key={m.id} className={`bubble ${isUser ? "bubble--user" : "bubble--ai"}`}>
+                  <div key={m.id} className={`bubble ${isUser ? "bubble--user" : "bubble--ai"} anim-pop`}>
                     {!isUser && (
                       <div className="bubble__head">
                         <span className="bubble__avatar" aria-hidden>🤖</span>
                         <span className="bubble__who">MiAgro IA</span>
-                        <button className="bubble__copy" onClick={handleCopy} title="Copiar respuesta">
-                          Copiar
-                        </button>
+                        <button className="bubble__copy" onClick={handleCopy} title="Copiar respuesta">Copiar</button>
                       </div>
                     )}
                     <div className="bubble__content md">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {m.normalized}
-                      </ReactMarkdown>
+                      {isUser ? (
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {textShown}
+                        </ReactMarkdown>
+                      ) : textShown ? (
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {textShown}
+                        </ReactMarkdown>
+                      ) : (
+                        <TypingDots />
+                      )}
                     </div>
                   </div>
                 );
               })
+            )}
+            {aiTyping && normalizedMessages.length > 0 && normalizedMessages.at(-1)?.role === "user" && (
+              <div className="bubble bubble--ai anim-pop">
+                <div className="bubble__head">
+                  <span className="bubble__avatar" aria-hidden>🤖</span>
+                  <span className="bubble__who">MiAgro IA</span>
+                </div>
+                <div className="bubble__content">
+                  <TypingDots />
+                </div>
+              </div>
             )}
             <div ref={bottomRef} />
           </div>
@@ -362,29 +389,32 @@ export default function ChatIA() {
           {error && <div className="chatia__error">{error}</div>}
 
           <form onSubmit={onSubmit} className="chatia__composer">
-            <textarea
-              ref={(el) => { textRef.current = el; inputRef.current = el; }}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onInput={autoResize}
-              onKeyDown={handleKeyDown}
-              placeholder="Escribe tu pregunta"
-              rows={2}
-              className="chatia__textarea"
-            />
+            <div className="chatia__inputWrap">
+              <textarea
+                ref={(el) => { textRef.current = el; inputRef.current = el; }}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onInput={autoResize}
+                onKeyDown={handleKeyDown}
+                placeholder="Escribe tu pregunta"
+                rows={2}
+                className="chatia__textarea"
+              />
+              <div className={`chatia__hint ${text ? "is-hidden" : ""}`}>
+                Enter para enviar • Shift+Enter para nueva línea
+              </div>
+            </div>
             <button type="submit" className="chatia__send" disabled={sending || !text.trim()}>
-              {sending ? "Enviando…" : "Enviar"}
+              <span className="chatia__sendIcon" aria-hidden>➤</span>
+              <span className="chatia__sendLabel">{sending ? "Enviando…" : "Enviar"}</span>
             </button>
           </form>
         </main>
       </div>
 
-      {/* Toast */}
       {toast.open && (
         <div
-          className={`toast ${toast.status === "loading" ? "toast--loading" : ""} ${
-            toast.status === "success" ? "toast--success" : ""
-          } ${toast.status === "error" ? "toast--error" : ""}`}
+          className={`toast ${toast.status === "loading" ? "toast--loading" : ""} ${toast.status === "success" ? "toast--success" : ""} ${toast.status === "error" ? "toast--error" : ""}`}
           role="status"
           aria-live="polite"
         >
@@ -403,7 +433,6 @@ export default function ChatIA() {
         </div>
       )}
 
-      {/* Modal de confirmación */}
       <ConfirmDialog
         open={confirmState.open}
         title="Eliminar conversación"
