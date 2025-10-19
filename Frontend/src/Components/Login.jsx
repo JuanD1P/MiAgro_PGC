@@ -12,11 +12,38 @@ import {
   fetchSignInMethodsForEmail,
   getAdditionalUserInfo
 } from "firebase/auth";
-import { auth } from "../firebase/client";
+import { auth, db } from "../firebase/client";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import ToastStack from "../Components/ToastStack";
 
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: "select_account" });
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+/** Upsert en colección 'usuarios/{uid}' acorde a tus reglas */
+async function upsertUserDoc(user, role = "USER", providerId = "password") {
+  if (!user?.uid) return;
+  const ref = doc(db, "usuarios", user.uid); // <-- colección 'usuarios'
+  const snap = await getDoc(ref);
+
+  const base = {
+    email: user.email || "",
+    displayName: user.displayName || "",
+    photoURL: user.photoURL || "",
+    phoneNumber: user.phoneNumber || "",
+    provider: providerId,
+    role: role || "USER",
+    lastLoginAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
+  const payload = snap.exists()
+    ? base
+    : { ...base, createdAt: serverTimestamp(), status: "active" };
+
+  await setDoc(ref, payload, { merge: true });
+}
 
 export default function Login() {
   const [values, setValues] = useState({ email: "", password: "" });
@@ -81,9 +108,15 @@ export default function Login() {
       const { user } = await signInWithEmailAndPassword(auth, values.email, values.password);
       const idToken = await user.getIdToken();
       localStorage.setItem("auth-token", idToken);
-      const { data } = await axios.post("http://localhost:3000/auth/session", { idToken });
+
+      const { data } = await axios.post(`${API_URL}/auth/session`, { idToken });
       if (!data?.ok) throw new Error(data?.error || "Sesión inválida");
+
       localStorage.setItem("user-role", data.rol);
+
+      // Upsert en 'usuarios' (proveedor password)
+      await upsertUserDoc(user, data.rol, "password");
+
       showToast("Sesión iniciada", { variant: "success", title: "Bienvenido", icon: "✅" });
       if (data.rol === "ADMIN") navigate("/Admin");
       else navigate("/Inicio");
@@ -104,14 +137,21 @@ export default function Login() {
       const user = result.user;
       const idToken = await user.getIdToken();
       localStorage.setItem("auth-token", idToken);
-      const { data } = await axios.post("http://localhost:3000/auth/session", { idToken });
+
+      const { data } = await axios.post(`${API_URL}/auth/session`, { idToken });
       if (!data?.ok) throw new Error(data?.error || "Sesión inválida");
+
       localStorage.setItem("user-role", data.rol);
+
+      // Upsert en 'usuarios' (proveedor google)
+      await upsertUserDoc(user, data.rol, "google");
+
       if (info?.isNewUser) {
         showToast("Registro exitoso con Google", { variant: "success", title: "Listo", icon: "✅" });
       } else {
         showToast("Inicio de sesión con Google", { variant: "success", title: "Bienvenido", icon: "✅" });
       }
+
       if (data.rol === "ADMIN") navigate("/Admin");
       else navigate("/Inicio");
       window.location.reload();
