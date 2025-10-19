@@ -206,7 +206,6 @@ export default function PreciosDiarios() {
                 <button className={`pdv__seg ${sortKey==="nombre" ? "is-active":""}`} onClick={() => setSort("nombre")} role="tab">Nombre</button>
                 <button className={`pdv__seg ${sortKey==="unidad" ? "is-active":""}`} onClick={() => setSort("unidad")} role="tab">$ Unidad</button>
                 <button className={`pdv__seg ${sortKey==="variacion" ? "is-active":""}`} onClick={() => setSort("variacion")} role="tab">Variación</button>
-                <span className={`pdv__segDir ${sortDir}`}></span>
               </div>
               <div className="pdv__chips" role="group" aria-label="Filtrar por tipo">
                 {tiposDisponibles.map((t) => (
