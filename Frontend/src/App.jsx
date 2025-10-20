@@ -14,6 +14,7 @@ import ProductosAdmin from './Components/Administradores/ProductosAdmin';
 import MunicipiosAdm from './Components/Administradores/MunicipiosAdm';
 import MunicipioDetalle from './Components/Administradores/MunicipioDetalle';
 import ChatIA from './Components/Agricultores/ChatIA';
+import TopProductos from './Components/Agricultores/TopProductos';
 
 function App() {
     return (
@@ -57,7 +58,12 @@ function App() {
 
                 {/* RUTAS PARA LOS USUARIOS */}   
 
-                
+                    <Route path ="/TopProductos" element={
+                        <ProtectedRoute allowedRoles={['USER']}>
+                            <TopProductos />
+                        </ProtectedRoute>
+                    } />
+                    
                     <Route path="/Inicio" element={
                         <ProtectedRoute allowedRoles={['USER']}>
                             <Inicio />
