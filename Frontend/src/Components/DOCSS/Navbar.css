@@ -3,7 +3,7 @@
   --blue-mid: #184a79;
   --blue-light: #2a6fb1;
   --white: #fff;
-}
+} 
 
 .navbar {
   width: 100%;
@@ -96,4 +96,103 @@
     font-size: 14px;
     padding: 6px 12px;
   }
+}
+
+:root{
+  --nav-blue-900:#0b2947;
+  --nav-blue-800:#0f3b63;
+  --nav-blue-700:#144e86;
+  --nav-glass:#ffffff1a;
+  --nav-border:#ffffff2b;
+}
+
+/* Barra “glass” con gradiente y blur */
+.navbar{
+  padding: 10px clamp(16px, 4vw, 28px);
+  background:
+    radial-gradient(120% 180% at -10% -60%, #1a6fd320 0 40%, transparent 60%),
+    linear-gradient(90deg, var(--nav-blue-900), var(--nav-blue-800));
+  border-bottom: 1px solid #00000022;
+  backdrop-filter: saturate(1.2) blur(8px);
+  box-shadow: 0 10px 28px rgba(8,24,41,.25);
+}
+
+/* Logo + título más compactos */
+.navbar-left{ gap: 10px; }
+.navbar-logo{ height: 44px; }
+.navbar-title{
+  font-weight: 800;
+  letter-spacing: .2px;
+  text-shadow: 0 1px 0 #ffffff66;
+  white-space: nowrap;
+}
+
+/* Grupo de acciones tipo “segmented” */
+.navbar-right{
+  gap: 10px;
+  background: linear-gradient(180deg, #1a3f6a66, #11345a66);
+  border: 1px solid var(--nav-border);
+  border-radius: 14px;
+  padding: 6px;
+  box-shadow: inset 0 1px 0 #ffffff40, 0 10px 22px rgba(8,24,41,.18);
+}
+
+/* Botón base: ghost por defecto dentro del grupo */
+.navbar-btn{
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-weight: 800;
+  letter-spacing: .2px;
+  border: 1px solid transparent;
+  color: #d6e9ff;
+  background: transparent;
+  transition: transform .08s ease, box-shadow .15s ease, background .15s ease, color .15s ease, border-color .15s ease;
+}
+.navbar-btn:hover{
+  background: #ffffff14;
+  box-shadow: 0 8px 18px rgba(18,60,110,.22);
+}
+.navbar-btn:active{ transform: translateY(1px); }
+
+/* Botón primario ACTIVO: pill azul con glow */
+.navbar-btnPrimary.is-active{
+  color:#fff;
+  background:
+    radial-gradient(160% 160% at 50% -60%, #63a9e6 0, transparent 70%),
+    linear-gradient(180deg, var(--nav-blue-700), var(--nav-blue-900));
+  border-color:#a9d2ff66;
+  box-shadow: 0 10px 24px rgba(23,98,162,.30), inset 0 2px 8px rgba(0,0,0,.20);
+}
+
+/* Botón secundario (Cerrar sesión) como outline nítido */
+.navbar-btnSecondary{
+  color:#fff;
+  border:1px solid #d7e8ff88;
+  background: linear-gradient(180deg, #ffffff0d, #ffffff05);
+}
+.navbar-btnSecondary:hover{
+  background:#ffffff1a;
+  box-shadow: 0 8px 18px rgba(18,60,110,.22);
+}
+
+/* Bordes y respiración del grupo en pantallas pequeñas */
+@media (max-width: 920px){
+  .navbar-right{
+    padding: 4px;
+    overflow:auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 6px;
+  }
+  .navbar-btn{ padding: 0 12px; height: 36px; font-size: 14px; white-space: nowrap; }
+  .navbar-title{ display:none; } /* gana espacio */
+  .navbar-logo{ height: 40px; }
+}
+
+/* Foco accesible */
+.navbar-btn:focus-visible{
+  outline: none;
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 4px #4ea5ff66;
 }

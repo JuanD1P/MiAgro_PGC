@@ -5,6 +5,7 @@ import logo from "../ImagenesP/ImagenesLogin/LogoPeque.png";
 import "./DOCSS/Navbar.css";
 
 export default function Navbar() {
+  const isActive = (path) => location.pathname.toLowerCase().startsWith(path.toLowerCase());
   const navigate = useNavigate();
   const location = useLocation();
   const [role, setRole] = useState(localStorage.getItem("user-role"));
@@ -65,19 +66,19 @@ export default function Navbar() {
               <>
                 <button
                   onClick={() => navigate("/Inicio")}
-                  className="navbar-btn navbar-btnPrimary"
+                  className={`navbar-btn navbar-btnPrimary ${isActive("/inicio") ? "is-active" : ""}`}
                 >
                   Inicio
                 </button>
                 <button
                   onClick={() => navigate("/PreciosDiarios")}
-                  className="navbar-btn navbar-btnPrimary"
+                  className={`navbar-btn navbar-btnPrimary ${isActive("/preciosdiarios") ? "is-active" : ""}`}
                 >
                   Precios Hoy
                 </button>
                 <button
                   onClick={() => navigate("/ChatIA")}
-                  className="navbar-btn navbar-btnPrimary"
+                  className={`navbar-btn navbar-btnPrimary ${isActive("/chatia") ? "is-active" : ""}`}
                 >
                   Chat MiAgroIA
                 </button>
