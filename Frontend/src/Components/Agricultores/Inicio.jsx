@@ -205,6 +205,22 @@ export default function Inicio() {
     el.scrollBy({ left: dir * delta, behavior: "smooth" });
   }; 
 
+  // ---- Tip dinámico del día (cambia cada día) ----
+  const tips = [
+    (m) => `Recuerda revisar el pronóstico de la tarde en ${m} antes de regar.`,
+    (m) => `Anota hoy la humedad del suelo en ${m}; te ayuda a ajustar riego.`,
+    (m) => `Verifica viento en ${m} antes de aplicar productos al follaje.`,
+    (m) => `¿Semillas listas? Revisa fechas de siembra recomendadas para ${m}.`,
+    (m) => `Sube una foto de tu cultivo y pregunta a la IA por buenas prácticas.`,
+    (m) => `Consulta precios del día para vender mejor en tu plaza cercana.`,
+    (m) => `Mira el Top 3 recomendado; puede darte una idea rápida para ${m}.`,
+  ];
+  const tipOfDay = useMemo(() => {
+    const m = municipioSel?.municipio || "tu municipio";
+    const idx = new Date().getDate() % tips.length;
+    return tips[idx](m);
+  }, [municipioSel?.municipio]);
+
   return (
     <div className={`${styles.wrap} ${!showLoader ? styles.ready : ""}`}>
       {showLoader && (
@@ -217,40 +233,37 @@ export default function Inicio() {
       <section className={styles.hero}>
         <div className={styles.heroOverlay}></div>
 
-        <div className={styles.topbar}>
-          <button className={styles.btnPicker} onClick={() => setOpenPicker((v) => !v)}>
-            Cambiar Municipio
-            <span className={`${styles.caret} ${openPicker ? styles.caretUp : ""}`}></span>
-          </button>
 
-          <div className={`${styles.pickerInline} ${openPicker ? styles.pickerOpen : ""}`}>
-            <div className={styles.pickerBody}>
-              <input
-                className={styles.search}
-                placeholder="Buscar municipio o departamento"
-                value={qSearch}
-                onChange={(e) => setQSearch(e.target.value)}
-              />
-              <div className={styles.list}>
-                {filtered.map((m) => (
-                  <button
-                    key={m.id}
-                    className={`${styles.item} ${m.id === municipioSel?.id ? styles.itemSel : ""}`}
-                    onClick={() => selectMunicipio(m, true)}
-                  >
-                    <div className={styles.itemTitle}>{m.municipio}</div>
-                    <div className={styles.itemSub}>{m.departamento}</div>
-                  </button>
-                ))}
+        <div className={styles.heroCard}>
+          <div className={styles.heroHead}>
+            <h1 className={styles.title}>
+              {municipioSel ? `${municipioSel.municipio.toUpperCase()} ${municipioSel.departamento.toUpperCase()}` : "SELECCIONA MUNICIPIO"}
+            </h1>
+
+            <div className={styles.actionsTop}>
+              <span className={styles.sectionTag}>Clima</span>
+              <button className={styles.btnPicker} onClick={() => setOpenPicker(v => !v)}>
+                Cambiar municipio
+                <span className={`${styles.caret} ${openPicker ? styles.caretUp : ""}`}></span>
+              </button>
+              <div className={`${styles.pickerInline} ${openPicker ? styles.pickerOpen : ""}`}>
+                <div className={styles.pickerBody}>
+                  <input className={styles.search} placeholder="Buscar municipio o departamento"
+                        value={qSearch} onChange={(e)=>setQSearch(e.target.value)} />
+                  <div className={styles.list}>
+                    {filtered.map(m => (
+                      <button key={m.id}
+                        className={`${styles.item} ${m.id===municipioSel?.id ? styles.itemSel : ""}`}
+                        onClick={() => selectMunicipio(m, true)}>
+                        <div className={styles.itemTitle}>{m.municipio}</div>
+                        <div className={styles.itemSub}>{m.departamento}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-
-        <div className={styles.heroCard}>
-          <h1 className={styles.title}>
-            {municipioSel ? `${municipioSel.municipio.toUpperCase()} ${municipioSel.departamento.toUpperCase()}` : "SELECCIONA MUNICIPIO"}
-          </h1>
 
           <div className={styles.heroGrid}>
             {/* Columna izquierda: clima */}
@@ -305,7 +318,6 @@ export default function Inicio() {
             </aside>
           </div>
 
-          <div className={styles.badge}>Clima</div>
         </div>
       </section>
 
@@ -315,7 +327,7 @@ export default function Inicio() {
           <button className={styles.actionCard} onClick={() => navigate("/Inicio")}>
             <span className={styles.actionGlow}></span>
             <div className={styles.actionImgBox}>
-              <img src="/im1.png" alt="Clima próximos 7 días" className={styles.actionImg} loading="lazy" decoding="async" />
+              <img src="/Clima_ini.svg" alt="Clima próximos 7 días" className={styles.actionImg} loading="lazy" decoding="async" />
             </div>
             <div className={styles.actionText}>
               <b>Ver clima</b>
@@ -326,7 +338,7 @@ export default function Inicio() {
           <button className={styles.actionCard} onClick={() => navigate("/ChatIA")}>
             <span className={styles.actionGlow}></span>
             <div className={styles.actionImgBox}>
-              <img src="/im2.png" alt="Consejos con IA" className={styles.actionImg} loading="lazy" decoding="async" />
+              <img src="/chatIa_ini.png" alt="Consejos con IA" className={styles.actionImg} loading="lazy" decoding="async" />
             </div>
             <div className={styles.actionText}>
               <b>Pídele consejos a la IA</b>
@@ -337,7 +349,7 @@ export default function Inicio() {
           <button className={styles.actionCard} onClick={() => navigate("/TopProductos")}>
             <span className={styles.actionGlow}></span>
             <div className={styles.actionImgBox}>
-              <img src="/im3.png" alt="Te ayudamos a escoger" className={styles.actionImg} loading="lazy" decoding="async" />
+              <img src="/planta_ini.svg" alt="Te ayudamos a escoger" className={styles.actionImg} loading="lazy" decoding="async" />
             </div>
             <div className={styles.actionText}>
               <b>Te ayudamos a escoger</b>
@@ -348,12 +360,19 @@ export default function Inicio() {
           <button className={styles.actionCard} onClick={() => navigate("/PreciosDiarios")}>
             <span className={styles.actionGlow}></span>
             <div className={styles.actionImgBox}>
-              <img src="/im4.png" alt="Precios diarios" className={styles.actionImg} loading="lazy" decoding="async" />
+              <img src="/precio_ini.svg" alt="Precios diarios" className={styles.actionImg} loading="lazy" decoding="async" />
             </div>
             <div className={styles.actionText}>
               <b>Consulta precios diarios</b>
               <span>Variaciones y referencias de mercado para vender mejor.</span>
             </div>
+          </button>
+        </div>
+        <div className={styles.actionsFoot}>
+          <span className={styles.footIcon} aria-hidden>💡</span>
+          <p className={styles.footText}>{tipOfDay}</p>
+          <button className={styles.footBtn} onClick={() => navigate("/TopProductos")}>
+            Ver guía rápida
           </button>
         </div>
       </section>
