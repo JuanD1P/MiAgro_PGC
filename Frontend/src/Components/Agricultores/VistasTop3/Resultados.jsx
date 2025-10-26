@@ -1,0 +1,355 @@
+import React, { useEffect, useMemo, useState } from "react";
+import "../DOCSS/top3.css";
+import AnalisisPrecios from "./_AnalisisPrecios.jsx";
+import { loadPreciosFromExcel } from "../../utils/preciosLoaderExcel";
+import { cicloCoincidenciaSeasonProxy } from "../../utils/climaOpenMeteo";
+
+const MAP = { ene:"01", feb:"02", mar:"03", abr:"04", may:"05", jun:"06", jul:"07", ago:"08", sep:"09", oct:"10", nov:"11", dic:"12" };
+
+function addDays(iso, days) {
+  if (!iso || days == null) return null;
+  const d = new Date(iso);
+  d.setDate(d.getDate() + Number(days));
+  return d.toISOString().slice(0, 10);
+}
+function formatSpanishDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" });
+}
+function norm(s) {
+  return (s || "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+function parseExcelDate(value){
+  if(value == null) return null;
+  if(typeof value === "number"){
+    const ms = (value - 25569) * 86400 * 1000;
+    const d = new Date(ms);
+    d.setDate(d.getDate() + 1);
+    return d;
+  }
+  if(value instanceof Date) return value;
+  const s = String(value).trim().toLowerCase();
+  if(/^\d+$/.test(s)){
+    const n = Number(s);
+    const ms = (n - 25569) * 86400 * 1000;
+    const d = new Date(ms);
+    d.setDate(d.getDate() + 1);
+    return d;
+  }
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return new Date(s);
+  const parts = s.split(/[\s\-\/]+/).filter(Boolean);
+  if(parts.length >= 2){
+    const m = parts[0].slice(0,3);
+    let y = parts[1];
+    if(y.length === 2) y = `20${y}`;
+    if(MAP[m]) return new Date(`${y}-${MAP[m]}-01`);
+  }
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+function categoryByRank(rank, total){
+  if(rank <= 1) return "Excelente";
+  if(rank <= Math.min(3, total)) return "Muy buenos";
+  if(rank <= Math.min(5, total)) return "Buenos";
+  if(rank <= Math.min(7, total)) return "Normales";
+  if(rank <= Math.min(9, total)) return "Malos";
+  if(rank <= Math.min(11, total)) return "Muy malos";
+  return "Horrible";
+}
+function toNum(x){ const n = typeof x==="string" ? parseFloat(String(x).replace(",", ".").trim()) : x; return Number.isFinite(n)? n : null; }
+function pick(obj, path){ return path.split(".").reduce((a,k)=> (a&&a[k]!=null)?a[k]:null, obj); }
+function parseLatLonString(s){
+  if(typeof s!=="string") return [null,null];
+  const m = s.split(/[,\s]+/).map(v=>toNum(v)).filter(v=>v!=null);
+  if(m.length===2) return [m[0], m[1]];
+  return [null,null];
+}
+function getLatLon(m){
+  const cands = [
+    [m?.lat, m?.lon],
+    [m?.lat, m?.lng],
+    [m?.latitude, m?.longitude],
+    [m?.latitud, m?.longitud],
+    [pick(m,"location.lat"), pick(m,"location.lon")],
+    [pick(m,"ubicacion.lat"), pick(m,"ubicacion.lon")],
+    [pick(m,"ubicacion.latitud"), pick(m,"ubicacion.longitud")],
+    [pick(m,"geo.lat"), pick(m,"geo.lon")],
+    [pick(m,"centroide.lat"), pick(m,"centroide.lon")],
+    [pick(m,"centroide.latitude"), pick(m,"centroide.longitude")],
+    Array.isArray(m?.latlng) ? m.latlng : null,
+    Array.isArray(m?.centroide?.coordinates) ? m.centroide.coordinates.slice().reverse() : null,
+    m?.geopoint && typeof m.geopoint.latitude==="number" && typeof m.geopoint.longitude==="number" ? [m.geopoint.latitude, m.geopoint.longitude] : null,
+    m?._lat && m?._long ? [m._lat, m._long] : null,
+    parseLatLonString(m?.latlon),
+    parseLatLonString(m?.coord)
+  ];
+  for(const c of cands){
+    if(!c) continue;
+    const a = toNum(c[0]); const b = toNum(c[1]);
+    if(a!=null && b!=null) return [a,b];
+  }
+  return [4.711, -74.072];
+}
+const rankOrder = {
+  "excelente": 0,
+  "muy buenos": 1,
+  "buenos": 2,
+  "normales": 3,
+  "malos": 4,
+  "muy malos": 5,
+  "horrible": 6
+};
+
+export default function Resultados({ municipio, fechaInicio, items = [] }) {
+  const [precioMap, setPrecioMap] = useState(null);
+  const [productoAnalisis, setProductoAnalisis] = useState(null);
+  const [climaMap, setClimaMap] = useState({});
+  const [climaErr, setClimaErr] = useState({});
+  const [verTabla, setVerTabla] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const rows = await loadPreciosFromExcel("/precios.xlsx");
+      const map = {};
+      for(const r of rows){
+        const key = norm(r.producto);
+        const d = parseExcelDate(r.fecha);
+        if(!d) continue;
+        if(!map[key]) map[key] = [];
+        map[key].push({ date: d, precio: r.precio });
+      }
+      for(const k of Object.keys(map)){
+        map[k].sort((a,b) => b.precio - a.precio);
+      }
+      if(mounted) setPrecioMap(map);
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    if(!fechaInicio || !municipio || !items?.length) return;
+    const [lat,lon] = getLatLon(municipio);
+    setClimaMap({});
+    setClimaErr({});
+    const run = async () => {
+      await Promise.allSettled(items.map(async (p) => {
+        const ciclo = p.agro?.cicloDias ?? null;
+        if(!ciclo){ setClimaErr(prev=>({...prev,[p.id]:"nociclo"})); return; }
+        const tempRange = p.agro?.temperatura || null;
+        const humRange  = p.agro?.humedad || null;
+        try{
+          const res = await cicloCoincidenciaSeasonProxy({
+            lat, lon,
+            fechaSiembraISO: fechaInicio,
+            cicloDias: ciclo,
+            tempRange, humRange,
+            shiftYearsBack: 1,
+            tolT: 1,
+            tolH: 5
+          });
+          setClimaMap(prev => ({...prev, [p.id]: res}));
+        }catch(e){
+          setClimaErr(prev=>({...prev,[p.id]:"error"}));
+        }
+      }));
+    };
+    run();
+  }, [fechaInicio, municipio, items]);
+
+  const excelRows = useMemo(() => {
+    const base = items.map(p => {
+      const ciclo = p.agro?.cicloDias ?? null;
+      const diaCultivo = fechaInicio || "";
+      const diaCosechaISO = ciclo != null ? addDays(fechaInicio, ciclo) : null;
+      const diaCosechaTxt = diaCosechaISO ? formatSpanishDate(diaCosechaISO) : "";
+      const dCosecha = diaCosechaISO ? new Date(diaCosechaISO) : null;
+      const mesCosecha = dCosecha ? dCosecha.getMonth() : null;
+      const anioCosecha = dCosecha ? dCosecha.getFullYear() : null;
+      const epocas = Array.isArray(p.agro?.epocasSiembra) ? p.agro.epocasSiembra : [];
+      const cumple = mesCosecha!=null
+        ? epocas.some(e => norm(e).startsWith(
+            new Date(2000, mesCosecha, 1).toLocaleDateString("es-CO",{month:"long"}).toLowerCase()
+          )) ? "Cumple" : "No cumple"
+        : "";
+
+      let rankTxt = "";
+      let rankCat = "";
+      if(precioMap && mesCosecha!=null){
+        const ds = precioMap[norm(p.nombre)] || [];
+        let idx = ds.findIndex(x => x.date.getMonth() === mesCosecha && x.date.getFullYear() === anioCosecha);
+        if(idx < 0) idx = ds.findIndex(x => x.date.getMonth() === mesCosecha);
+        if(idx >= 0){
+          const rank = idx + 1;
+          const total = ds.length || 1;
+          const cat = categoryByRank(rank, total);
+          rankTxt = `${rank}/${total} · ${cat}`;
+          rankCat = cat;
+        }
+      }
+
+      const clima = climaMap[p.id];
+      const err = climaErr[p.id] || null;
+      const climaCoincidencia = err ? null : (clima?.overallPct ?? null);
+
+      return {
+        id: p.id,
+        nombre: p.nombre,
+        tipo: p.tipo || "",
+        url: p.url || "",
+        tMin: p.agro?.temperatura?.min ?? "",
+        tMax: p.agro?.temperatura?.max ?? "",
+        hMin: p.agro?.humedad?.min ?? "",
+        hMax: p.agro?.humedad?.max ?? "",
+        aMin: p.agro?.altitud?.min ?? "",
+        aMax: p.agro?.altitud?.max ?? "",
+        ciclo: ciclo ?? "",
+        epocas: epocas.length ? epocas.join(", ") : "",
+        diaCultivoTxt: diaCultivo ? formatSpanishDate(diaCultivo) : "",
+        diaCosechaTxt,
+        cumple,
+        rankSiembra: rankTxt,
+        rankCat,
+        climaCoincidencia
+      };
+    });
+
+    return [...base].sort((a, b) => {
+      const sa = a.cumple === "Cumple" ? 0 : 1;
+      const sb = b.cumple === "Cumple" ? 0 : 1;
+      if (sa !== sb) return sa - sb;
+      const ra = rankOrder[norm(a.rankCat)] ?? 999;
+      const rb = rankOrder[norm(b.rankCat)] ?? 999;
+      if (ra !== rb) return ra - rb;
+      const ca = a.climaCoincidencia ?? -1;
+      const cb = b.climaCoincidencia ?? -1;
+      if (ca !== cb) return cb - ca;
+      return a.nombre.localeCompare(b.nombre, "es");
+    });
+  }, [items, fechaInicio, precioMap, climaMap, climaErr]);
+
+  const top3 = useMemo(() => excelRows.slice(0, 3), [excelRows]);
+
+  return (
+    <div className="top3-wrap">
+      <div className="top3-head">
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <h1 style={{ margin: 0 }}>Top 3 recomendados</h1>
+          <button className="top3-btn ghost" onClick={() => setVerTabla(v => !v)}>?</button>
+        </div>
+        {municipio && (
+          <div className="top3-meta" style={{ marginTop: 8 }}>
+            <div className="top3-muted">Municipio seleccionado</div>
+            <h2 style={{ marginTop: 4 }}>
+              {municipio.municipio} {municipio.departamento ? `– ${municipio.departamento}` : ""}
+            </h2>
+            {fechaInicio && (
+              <div className="top3-muted">Fecha de inicio: {formatSpanishDate(fechaInicio)}</div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="cards-grid">
+        {top3.map((r, idx) => (
+          <div key={`card-${r.id}`} className={`card card-rank-${idx+1}`}>
+            <div className="card-rank">#{idx+1}</div>
+            <div className="card-body">
+              <div className="card-media">
+                {r.url ? <img src={r.url} alt={r.nombre} /> : <div className="img-ph">SIN FOTO</div>}
+              </div>
+              <div className="card-info">
+                <h3 className="card-title">{r.nombre}</h3>
+                <div className="card-sub">{r.tipo || "—"}</div>
+                <div className="card-row"><span>Siembra:</span><b>{r.diaCultivoTxt || "—"}</b></div>
+                <div className="card-row"><span>Cosecha:</span><b>{r.diaCosechaTxt || "—"}</b></div>
+                <div className="card-metrics">
+                  <div className={`pill ${r.cumple==="Cumple"?"ok":"bad"}`}>{r.cumple || "—"}</div>
+                  <div className="pill">{r.rankSiembra || "Sin ranking"}</div>
+                  <div className="pill">{r.climaCoincidencia!=null ? `${r.climaCoincidencia}% clima` : "Clima —"}</div>
+                </div>
+              </div>
+            </div>
+            <div className="card-actions">
+              <button className="top3-btn" onClick={() => setProductoAnalisis({ nombre: r.nombre, fechaCosecha: r.diaCosechaTxt })}>Ver precios</button>
+            </div>
+          </div>
+        ))}
+        {!top3.length && <div className="top3-empty">Sin datos para el Top 3.</div>}
+      </div>
+
+      {verTabla && (
+        <div className="tbl-wrap" style={{ marginTop: 24 }}>
+          <div className="tbl-title">Tabla estilo Excel – Datos completos</div>
+          <div style={{ overflow: "auto" }}>
+            <table className="tbl-excel">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Producto</th>
+                  <th>Tipo</th>
+                  <th>T. Mín</th>
+                  <th>T. Máx</th>
+                  <th>H. Mín</th>
+                  <th>H. Máx</th>
+                  <th>A. Mín</th>
+                  <th>A. Máx</th>
+                  <th>Ciclo (días)</th>
+                  <th>Épocas</th>
+                  <th>Día de cultivo</th>
+                  <th>Día de cosecha</th>
+                  <th>¿Cumple época?</th>
+                  <th>Mes cosecha (ranking)</th>
+                  <th>Coincidencia clima (%)</th>
+                  <th>Precios</th>
+                </tr>
+              </thead>
+              <tbody>
+                {excelRows.map((r) => (
+                  <tr key={`xls-${r.id}`}>
+                    <td>{r.id}</td>
+                    <td>{r.nombre}</td>
+                    <td>{r.tipo}</td>
+                    <td>{r.tMin}</td>
+                    <td>{r.tMax}</td>
+                    <td>{r.hMin}</td>
+                    <td>{r.hMax}</td>
+                    <td>{r.aMin}</td>
+                    <td>{r.aMax}</td>
+                    <td>{r.ciclo}</td>
+                    <td>{r.epocas}</td>
+                    <td>{r.diaCultivoTxt}</td>
+                    <td>{r.diaCosechaTxt}</td>
+                    <td className={r.cumple === "Cumple" ? "status-good" : r.cumple ? "status-bad" : ""}>{r.cumple}</td>
+                    <td>{r.rankSiembra || "—"}</td>
+                    <td>{r.climaCoincidencia!=null ? `${r.climaCoincidencia}%` : "—"}</td>
+                    <td>
+                      <button
+                        className="top3-btn"
+                        onClick={() => setProductoAnalisis({ nombre: r.nombre, fechaCosecha: r.diaCosechaTxt })}
+                      >
+                        Ver
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {!excelRows.length && (
+                  <tr><td colSpan={17}>Sin datos</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {productoAnalisis && (
+        <AnalisisPrecios
+          producto={productoAnalisis.nombre}
+          fechaCosechaTxt={productoAnalisis.fechaCosecha}
+          onClose={() => setProductoAnalisis(null)}
+        />
+      )}
+    </div>
+  );
+}

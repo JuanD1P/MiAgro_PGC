@@ -15,6 +15,7 @@ import MunicipiosAdm from './Components/Administradores/MunicipiosAdm';
 import MunicipioDetalle from './Components/Administradores/MunicipioDetalle';
 import ChatIA from './Components/Agricultores/ChatIA';
 import TopProductos from './Components/Agricultores/TopProductos';
+import StartModal from './Components/Agricultores/VistasTop3/StartModal.jsx';
 
 function App() {
     return (
@@ -61,6 +62,12 @@ function App() {
                     <Route path ="/TopProductos" element={
                         <ProtectedRoute allowedRoles={['USER']}>
                             <TopProductos />
+                        </ProtectedRoute>
+                    } />
+
+                    <Route path="/StartModal" element={
+                        <ProtectedRoute allowedRoles={['USER']}>
+                            <StartModal />
                         </ProtectedRoute>
                     } />
                     
