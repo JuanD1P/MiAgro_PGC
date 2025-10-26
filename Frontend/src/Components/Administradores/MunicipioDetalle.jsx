@@ -335,11 +335,6 @@ export default function MunicipioDetalle() {
                 {!filtrados.length && <div className="au-listEmpty au-gridFull">No hay productos en el catálogo</div>}
               </div>
             </div>
-            
-
-            <div className="au-mdet-sideSticky">
-              <button className="au-mdet-back" onClick={() => navigate("/admin/municipios")}>← Volver</button>
-            </div>
           </aside>
         </div>
       </section>

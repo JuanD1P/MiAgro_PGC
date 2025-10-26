@@ -203,7 +203,7 @@ export default function Inicio() {
     const card = el.querySelector(`.${styles.proCard}`);
     const delta = card ? card.clientWidth + 16 : el.clientWidth * 0.8;
     el.scrollBy({ left: dir * delta, behavior: "smooth" });
-  };
+  }; 
 
   return (
     <div className={`${styles.wrap} ${!showLoader ? styles.ready : ""}`}>
@@ -214,7 +214,7 @@ export default function Inicio() {
         </div>
       )}
 
-      <section className={styles.hero} style={bgUrl ? { backgroundImage: `url(${bgUrl})` } : undefined}>
+      <section className={styles.hero}>
         <div className={styles.heroOverlay}></div>
 
         <div className={styles.topbar}>
@@ -247,45 +247,62 @@ export default function Inicio() {
           </div>
         </div>
 
-        <div className={styles.card}>
+        <div className={styles.heroCard}>
           <h1 className={styles.title}>
             {municipioSel ? `${municipioSel.municipio.toUpperCase()} ${municipioSel.departamento.toUpperCase()}` : "SELECCIONA MUNICIPIO"}
           </h1>
 
-          <div className={styles.weatherRow}>
-            <div className={styles.todayBox}>
-              <div className={styles.todayMain}>
-                <img className={styles.iconNow} src={iconPath(currCode)} alt="" />
-                <div className={styles.tempNow}>
-                  {currTemp != null ? (unit === "C" ? Math.round(currTemp) : cToF(currTemp)) : "--"}
-                  <button className={`${styles.unit} ${unit === "C" ? styles.unitOn : ""}`} onClick={() => setUnit("C")}>°C</button>
-                  <span className={styles.sep}>|</span>
-                  <button className={`${styles.unit} ${unit === "F" ? styles.unitOn : ""}`} onClick={() => setUnit("F")}>°F</button>
+          <div className={styles.heroGrid}>
+            {/* Columna izquierda: clima */}
+            <div>
+              <div className={styles.todayBox}>
+                <div className={styles.todayMain}>
+                  <img className={styles.iconNow} src={iconPath(currCode)} alt="" />
+                  <div className={styles.tempNow}>
+                    {currTemp != null ? (unit === "C" ? Math.round(currTemp) : cToF(currTemp)) : "--"}
+                    <button className={`${styles.unit} ${unit === "C" ? styles.unitOn : ""}`} onClick={() => setUnit("C")}>°C</button>
+                    <span className={styles.sep}>|</span>
+                    <button className={`${styles.unit} ${unit === "F" ? styles.unitOn : ""}`} onClick={() => setUnit("F")}>°F</button>
+                  </div>
+                </div>
+                <div className={styles.meta}>
+                  <div>Prob. de precipitaciones: {dias[0]?.pprob != null ? `${dias[0].pprob}%` : "—"}</div>
+                  <div>Humedad: {currHum != null ? `${currHum}%` : "—"}</div>
+                  <div>Viento: {currWind != null ? `${Math.round(currWind)} km/h` : "—"}</div>
                 </div>
               </div>
-              <div className={styles.meta}>
-                <div>Prob. de precipitaciones: {dias[0]?.pprob != null ? `${dias[0].pprob}%` : "—"}</div>
-                <div>Humedad: {currHum != null ? `${currHum}%` : "—"}</div>
-                <div>Viento: {currWind != null ? `${Math.round(currWind)} km/h` : "—"}</div>
+
+              <div className={styles.weekStrip}>
+                {dias.map((d, i) => (
+                  <div key={d.date} className={styles.day} style={{ animationDelay: `${i * 40}ms` }}>
+                    <div className={styles.dayName}>
+                      {new Date(d.date).toLocaleDateString("es-CO", { weekday: "short" })}
+                    </div>
+                    <img className={styles.dayIcon} src={iconPath(d.code)} alt="" />
+                    <div className={styles.dayTemps}>
+                      <span>{unit === "C" ? Math.round(d.tmin) : cToF(d.tmin)}°</span>
+                      <span> / </span>
+                      <span>{unit === "C" ? Math.round(d.tmax) : cToF(d.tmax)}°</span>
+                    </div>
+                    <div className={styles.dayP}>{d.pprob != null ? `${d.pprob}%` : "—"}</div>
+                  </div>
+                ))}
               </div>
             </div>
 
-            <div className={styles.weekStrip}>
-              {dias.map((d, i) => (
-                <div key={d.date} className={styles.day} style={{ animationDelay: `${i * 40}ms` }}>
-                  <div className={styles.dayName}>
-                    {new Date(d.date).toLocaleDateString("es-CO", { weekday: "short" })}
-                  </div>
-                  <img className={styles.dayIcon} src={iconPath(d.code)} alt="" />
-                  <div className={styles.dayTemps}>
-                    <span>{unit === "C" ? Math.round(d.tmin) : cToF(d.tmin)}°</span>
-                    <span> / </span>
-                    <span>{unit === "C" ? Math.round(d.tmax) : cToF(d.tmax)}°</span>
-                  </div>
-                  <div className={styles.dayP}>{d.pprob != null ? `${d.pprob}%` : "—"}</div>
-                </div>
-              ))}
-            </div>
+            {/* Columna derecha: imagen del municipio */}
+            <aside className={styles.muniPanel}>
+              <img
+                className={styles.muniImg}
+                src={bgUrl || "/fallback-muni.jpg"}
+                alt={municipioSel ? `${municipioSel.municipio}, ${municipioSel.departamento}` : "Municipio"}
+                loading="lazy"
+                decoding="async"
+              />
+              <div className={styles.muniBadge}>
+                {municipioSel ? `${municipioSel.municipio}, ${municipioSel.departamento}` : "—"}
+              </div>
+            </aside>
           </div>
 
           <div className={styles.badge}>Clima</div>
