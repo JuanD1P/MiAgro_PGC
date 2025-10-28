@@ -34,10 +34,10 @@ export default function Inicio() {
   const [loadingGeo, setLoadingGeo] = useState(false);
   const [loadingWx, setLoadingWx] = useState(false);
   const [booting, setBooting] = useState(true);
-
   const [productos, setProductos] = useState([]);
   const trackRef = useRef(null);
-
+  const autoRef = useRef(null);
+  const pausedRef = useRef(false);
   const selId = useRef(localStorage.getItem("municipioSeleccionado") || "");
   const geoCacheRef = useRef({});
   const geoCacheKey = "geoCacheV1";
@@ -203,9 +203,25 @@ export default function Inicio() {
     const card = el.querySelector(`.${styles.proCard}`);
     const delta = card ? card.clientWidth + 16 : el.clientWidth * 0.8;
     el.scrollBy({ left: dir * delta, behavior: "smooth" });
-  }; 
+  };
 
-  // ---- Tip dinámico del día (cambia cada día) ----
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const loop = () => {
+      if (pausedRef.current) return;
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      const advance = Math.max(1, Math.round(el.clientWidth * 0.5));
+      if (el.scrollLeft >= maxScroll - 4) {
+        el.scrollTo({ left: 0, behavior: "smooth" });
+      } else {
+        el.scrollBy({ left: advance, behavior: "smooth" });
+      }
+    };
+    autoRef.current = setInterval(loop, 3800);
+    return () => clearInterval(autoRef.current);
+  }, []);
+
   const tips = [
     (m) => `Recuerda revisar el pronóstico de la tarde en ${m} antes de regar.`,
     (m) => `Anota hoy la humedad del suelo en ${m}; te ayuda a ajustar riego.`,
@@ -231,93 +247,84 @@ export default function Inicio() {
       )}
 
       <section className={styles.hero}>
-        <div className={styles.heroOverlay}></div>
-
-
-        <div className={styles.heroCard}>
-          <div className={styles.heroHead}>
-            <h1 className={styles.title}>
-              {municipioSel ? `${municipioSel.municipio.toUpperCase()} ${municipioSel.departamento.toUpperCase()}` : "SELECCIONA MUNICIPIO"}
-            </h1>
-
-            <div className={styles.actionsTop}>
-              <span className={styles.sectionTag}>Clima</span>
-              <button className={styles.btnPicker} onClick={() => setOpenPicker(v => !v)}>
-                Cambiar municipio
-                <span className={`${styles.caret} ${openPicker ? styles.caretUp : ""}`}></span>
-              </button>
-              <div className={`${styles.pickerInline} ${openPicker ? styles.pickerOpen : ""}`}>
-                <div className={styles.pickerBody}>
-                  <input className={styles.search} placeholder="Buscar municipio o departamento"
-                        value={qSearch} onChange={(e)=>setQSearch(e.target.value)} />
-                  <div className={styles.list}>
-                    {filtered.map(m => (
-                      <button key={m.id}
-                        className={`${styles.item} ${m.id===municipioSel?.id ? styles.itemSel : ""}`}
-                        onClick={() => selectMunicipio(m, true)}>
-                        <div className={styles.itemTitle}>{m.municipio}</div>
-                        <div className={styles.itemSub}>{m.departamento}</div>
-                      </button>
-                    ))}
-                  </div>
+        <div className={styles.heroHead}>
+          <h1 className={styles.title}>
+            {municipioSel ? `${municipioSel.municipio.toUpperCase()} ${municipioSel.departamento.toUpperCase()}` : "SELECCIONA MUNICIPIO"}
+          </h1>
+          <div className={styles.actionsTop}>
+            <span className={styles.sectionTag}>Clima</span>
+            <button className={styles.btnPicker} onClick={() => setOpenPicker(v => !v)}>
+              Cambiar municipio
+              <span className={`${styles.caret} ${openPicker ? styles.caretUp : ""}`}></span>
+            </button>
+            <div className={`${styles.pickerInline} ${openPicker ? styles.pickerOpen : ""}`}>
+              <div className={styles.pickerBody}>
+                <input className={styles.search} placeholder="Buscar municipio o departamento"
+                  value={qSearch} onChange={(e)=>setQSearch(e.target.value)} />
+                <div className={styles.list}>
+                  {filtered.map(m => (
+                    <button key={m.id}
+                      className={`${styles.item} ${m.id===municipioSel?.id ? styles.itemSel : ""}`}
+                      onClick={() => selectMunicipio(m, true)}>
+                      <div className={styles.itemTitle}>{m.municipio}</div>
+                      <div className={styles.itemSub}>{m.departamento}</div>
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-          <div className={styles.heroGrid}>
-            {/* Columna izquierda: clima */}
-            <div>
-              <div className={styles.todayBox}>
-                <div className={styles.todayMain}>
-                  <img className={styles.iconNow} src={iconPath(currCode)} alt="" />
-                  <div className={styles.tempNow}>
-                    {currTemp != null ? (unit === "C" ? Math.round(currTemp) : cToF(currTemp)) : "--"}
-                    <button className={`${styles.unit} ${unit === "C" ? styles.unitOn : ""}`} onClick={() => setUnit("C")}>°C</button>
-                    <span className={styles.sep}>|</span>
-                    <button className={`${styles.unit} ${unit === "F" ? styles.unitOn : ""}`} onClick={() => setUnit("F")}>°F</button>
-                  </div>
-                </div>
-                <div className={styles.meta}>
-                  <div>Prob. de precipitaciones: {dias[0]?.pprob != null ? `${dias[0].pprob}%` : "—"}</div>
-                  <div>Humedad: {currHum != null ? `${currHum}%` : "—"}</div>
-                  <div>Viento: {currWind != null ? `${Math.round(currWind)} km/h` : "—"}</div>
+        <div className={styles.heroGrid}>
+          <div className={styles.weatherCol}>
+            <div className={styles.todayBox}>
+              <div className={styles.todayMain}>
+                <img className={styles.iconNow} src={iconPath(currCode)} alt="" />
+                <div className={styles.tempNow}>
+                  {currTemp != null ? (unit === "C" ? Math.round(currTemp) : cToF(currTemp)) : "--"}
+                  <button className={`${styles.unit} ${unit === "C" ? styles.unitOn : ""}`} onClick={() => setUnit("C")}>°C</button>
+                  <span className={styles.sep}>|</span>
+                  <button className={`${styles.unit} ${unit === "F" ? styles.unitOn : ""}`} onClick={() => setUnit("F")}>°F</button>
                 </div>
               </div>
-
-              <div className={styles.weekStrip}>
-                {dias.map((d, i) => (
-                  <div key={d.date} className={styles.day} style={{ animationDelay: `${i * 40}ms` }}>
-                    <div className={styles.dayName}>
-                      {new Date(d.date).toLocaleDateString("es-CO", { weekday: "short" })}
-                    </div>
-                    <img className={styles.dayIcon} src={iconPath(d.code)} alt="" />
-                    <div className={styles.dayTemps}>
-                      <span>{unit === "C" ? Math.round(d.tmin) : cToF(d.tmin)}°</span>
-                      <span> / </span>
-                      <span>{unit === "C" ? Math.round(d.tmax) : cToF(d.tmax)}°</span>
-                    </div>
-                    <div className={styles.dayP}>{d.pprob != null ? `${d.pprob}%` : "—"}</div>
-                  </div>
-                ))}
+              <div className={styles.meta}>
+                <div>Prob. de precipitaciones: {dias[0]?.pprob != null ? `${dias[0].pprob}%` : "—"}</div>
+                <div>Humedad: {currHum != null ? `${currHum}%` : "—"}</div>
+                <div>Viento: {currWind != null ? `${Math.round(currWind)} km/h` : "—"}</div>
               </div>
             </div>
 
-            {/* Columna derecha: imagen del municipio */}
-            <aside className={styles.muniPanel}>
-              <img
-                className={styles.muniImg}
-                src={bgUrl || "/fallback-muni.jpg"}
-                alt={municipioSel ? `${municipioSel.municipio}, ${municipioSel.departamento}` : "Municipio"}
-                loading="lazy"
-                decoding="async"
-              />
-              <div className={styles.muniBadge}>
-                {municipioSel ? `${municipioSel.municipio}, ${municipioSel.departamento}` : "—"}
-              </div>
-            </aside>
+            <div className={styles.weekStrip}>
+              {dias.map((d, i) => (
+                <div key={d.date} className={styles.day} style={{ animationDelay: `${i * 30}ms` }}>
+                  <div className={styles.dayName}>
+                    {new Date(d.date).toLocaleDateString("es-CO", { weekday: "short" })}
+                  </div>
+                  <img className={styles.dayIcon} src={iconPath(d.code)} alt="" />
+                  <div className={styles.dayTemps}>
+                    <span>{unit === "C" ? Math.round(d.tmin) : cToF(d.tmin)}°</span>
+                    <span> / </span>
+                    <span>{unit === "C" ? Math.round(d.tmax) : cToF(d.tmax)}°</span>
+                  </div>
+                  <div className={styles.dayP}>{d.pprob != null ? `${d.pprob}%` : "—"}</div>
+                </div>
+              ))}
+            </div>
           </div>
 
+          <aside className={styles.muniPanel}>
+            <img
+              className={styles.muniImg}
+              src={bgUrl || "/fallback-muni.jpg"}
+              alt={municipioSel ? `${municipioSel.municipio}, ${municipioSel.departamento}` : "Municipio"}
+              loading="lazy"
+              decoding="async"
+            />
+            <div className={styles.muniBadge}>
+              {municipioSel ? `${municipioSel.municipio}, ${municipioSel.departamento}` : "—"}
+            </div>
+          </aside>
         </div>
       </section>
 
@@ -325,7 +332,6 @@ export default function Inicio() {
         <h2 className={styles.actionsTitle}>¿Qué puedes hacer?</h2>
         <div className={styles.actionsGrid}>
           <button className={styles.actionCard} onClick={() => navigate("/Inicio")}>
-            <span className={styles.actionGlow}></span>
             <div className={styles.actionImgBox}>
               <img src="/Clima_ini.svg" alt="Clima próximos 7 días" className={styles.actionImg} loading="lazy" decoding="async" />
             </div>
@@ -336,7 +342,6 @@ export default function Inicio() {
           </button>
 
           <button className={styles.actionCard} onClick={() => navigate("/ChatIA")}>
-            <span className={styles.actionGlow}></span>
             <div className={styles.actionImgBox}>
               <img src="/chatIa_ini.png" alt="Consejos con IA" className={styles.actionImg} loading="lazy" decoding="async" />
             </div>
@@ -347,7 +352,6 @@ export default function Inicio() {
           </button>
 
           <button className={styles.actionCard} onClick={() => navigate("/TopProductos")}>
-            <span className={styles.actionGlow}></span>
             <div className={styles.actionImgBox}>
               <img src="/planta_ini.svg" alt="Te ayudamos a escoger" className={styles.actionImg} loading="lazy" decoding="async" />
             </div>
@@ -358,7 +362,6 @@ export default function Inicio() {
           </button>
 
           <button className={styles.actionCard} onClick={() => navigate("/PreciosDiarios")}>
-            <span className={styles.actionGlow}></span>
             <div className={styles.actionImgBox}>
               <img src="/precio_ini.svg" alt="Precios diarios" className={styles.actionImg} loading="lazy" decoding="async" />
             </div>
@@ -371,49 +374,48 @@ export default function Inicio() {
         <div className={styles.actionsFoot}>
           <span className={styles.footIcon} aria-hidden>💡</span>
           <p className={styles.footText}>{tipOfDay}</p>
-          <button className={styles.footBtn} onClick={() => navigate("/TopProductos")}>
-            Ver guía rápida
-          </button>
         </div>
       </section>
 
-      <section className={styles.top3Wrap} aria-label="Top 3 recomendado">
-        <div className={styles.top3Band}>
-          <div className={styles.top3Copy}>
-            <h2 className={styles.top3Title}>¿No sabes qué sembrar?</h2>
-            <p className={styles.top3Lead}>Nosotros te ayudamos con…</p>
-            <ul className={styles.top3List}>
-              <li>Análisis de clima histórico y pronóstico regional.</li>
-              <li>Demanda y precios recientes del mercado.</li>
-              <li>Parámetros agro del cultivo en tu zona.</li>
-            </ul>
-            <p className={styles.top3After}>
-              Después te damos el <b>Top 3</b> de los mejores productos para sembrar, la
-              <b> fecha estimada de cosecha</b> y te contamos <b>por qué</b>.
-            </p>
-            <button
-              className={styles.top3CTA}
-              onClick={() => navigate("/TopProductos")}
-              aria-label="Ir a la vista Top 3"
-            >
-              Consultar Top 3
-            </button>
-          </div>
+{/* Top 3 recomendado (reemplaza tu sección completa) */}
+<section className={styles.top3Wrap} aria-label="Top 3 recomendado">
+  <div className={styles.top3Band}>
+    <div className={styles.top3Copy}>
+      <h2 className={styles.top3Title}>¿No sabes qué sembrar?</h2>
+      <p className={styles.top3Lead}>Nosotros te ayudamos con…</p>
+      <ul className={styles.top3List}>
+        <li>Análisis de clima histórico y pronóstico regional.</li>
+        <li>Demanda y precios recientes del mercado.</li>
+        <li>Parámetros agro del cultivo en tu zona.</li>
+      </ul>
+      <p className={styles.top3After}>
+        Después te damos el <b>Top 3</b> de los mejores productos para sembrar,
+        la <b>fecha estimada de cosecha</b> y te contamos <b>por qué</b>.
+      </p>
+      <button
+        className={styles.top3CTA}
+        onClick={() => navigate("/TopProductos")}
+        aria-label="Ir a la vista Top 3"
+      >
+        Consultar Top 3
+      </button>
+    </div>
 
-          <div className={styles.top3Art} role="presentation">
-            <img
-              src="/granjerozzz.png"
-              alt="Granjero descansando"
-              className={styles.top3Farmer}
-              loading="lazy"
-              decoding="async"
-              draggable={false}
-            />
-          </div>
-        </div>
-      </section>
+    <div className={styles.top3Art} role="presentation">
+      <img
+        src="/granjerozzz.png"
+        alt="Granjero descansando"
+        className={styles.top3Farmer}
+        loading="lazy"
+        decoding="async"
+        draggable={false}
+      />
+    </div>
+  </div>
+</section>
 
-       <section className={`${styles.band} ${styles.bandPro}`}>
+
+      <section className={styles.bandPro}>
         <div className={styles.innerWide}>
           <div className={styles.proHead}>
             <div className={styles.proCopy}>
@@ -426,9 +428,11 @@ export default function Inicio() {
             </div>
           </div>
 
-          <div className={styles.proViewport}>
-            <div className={styles.edgeMaskLeft} aria-hidden="true"></div>
-            <div className={styles.edgeMaskRight} aria-hidden="true"></div>
+          <div
+            className={styles.proViewport}
+            onMouseEnter={() => (pausedRef.current = true)}
+            onMouseLeave={() => (pausedRef.current = false)}
+          >
             <div className={styles.proTrack} ref={trackRef}>
               {prodsForMunicipio.map((p) => (
                 <article key={p.id} className={styles.proCard}>

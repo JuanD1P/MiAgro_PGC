@@ -1,0 +1,123 @@
+/* src/Agricultores/DOCSS/cargapantalla.css */
+:root{
+  --bg:#cfe3ea;
+  --ink:#0b1f4d;
+  --track:rgba(255,255,255,.8);
+  --bar-a:#4cc9f0;
+  --bar-b:#4361ee;
+}
+
+.carga-overlay{
+  position:fixed;
+  inset:0;
+  background:var(--bg);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+  overflow:hidden;
+}
+
+.carga-sky{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+
+.carga-cloud{
+  position:absolute;
+  top:15%;
+  width:120px;
+  height:48px;
+  background:rgba(255,255,255,.9);
+  border-radius:48px;
+  filter:blur(1px);
+  animation:cloud 18s linear infinite;
+}
+
+.carga-cloud::before,
+.carga-cloud::after{
+  content:"";
+  position:absolute;
+  background:inherit;
+  border-radius:inherit;
+}
+
+.carga-cloud::before{
+  width:70px;height:70px;left:10px;top:-28px;
+}
+
+.carga-cloud::after{
+  width:50px;height:50px;left:55px;top:-18px;
+}
+
+.carga-cloud.c1{ left:-140px; top:22%; animation-delay:-2s; opacity:.7;}
+.carga-cloud.c2{ left:-220px; top:38%; animation-duration:22s; opacity:.6;}
+.carga-cloud.c3{ left:-180px; top:58%; animation-duration:26s; opacity:.5;}
+
+@keyframes cloud{
+  0%{ transform:translateX(0); }
+  100%{ transform:translateX(140vw); }
+}
+
+.carga-card{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:16px;
+  padding:24px 32px;
+  text-align:center;
+}
+
+.carga-gif img{
+  width:min(200px,38vw);
+  height:min(200px,38vw);
+  object-fit:contain;
+  filter:drop-shadow(0 12px 30px rgba(0,0,0,.15));
+  animation:bounce 1.6s ease-in-out infinite;
+}
+
+@keyframes bounce{
+  0%,100%{ transform:translateY(0) }
+  50%{ transform:translateY(-6px) }
+}
+
+.carga-text{
+  font-size:18px;
+  font-weight:800;
+  color:var(--ink);
+  letter-spacing:.2px;
+}
+
+.carga-progress{
+  width:min(560px,82vw);
+  height:8px;
+  background:var(--track);
+  border-radius:999px;
+  overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.05);
+}
+
+.carga-bar{
+  height:100%;
+  transform-origin:left center;
+  background:linear-gradient(90deg,var(--bar-a),var(--bar-b),var(--bar-a));
+  background-size:200% 100%;
+  animation:shine 1.2s linear infinite;
+}
+
+@keyframes shine{
+  0%{ background-position:0% 0 }
+  100%{ background-position:200% 0 }
+}
+
+.carga-chip{
+  margin-top:4px;
+  font-size:12px;
+  padding:6px 10px;
+  border-radius:999px;
+  background:rgba(255,255,255,.7);
+  color:var(--ink);
+  user-select:none;
+}

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./DOCSS/top3.css";
 import StartModal from "./VistasTop3/StartModal.jsx";
-import LoadingScreen from "./VistasTop3/LoadingScreen.jsx";
+import CargaPantalla from "./VistasTop3/LoadingScreen.jsx";
 import Resultados from "./VistasTop3/Resultados.jsx";
 import { db } from "../../firebase/client";
 import { collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, where } from "firebase/firestore";
@@ -19,12 +19,6 @@ export default function TopProductos() {
   const [detalles, setDetalles] = useState({});
   const [fechaInicio, setFechaInicio] = useState(null);
   const [loading, setLoading] = useState(false);
-  const tipsRef = useRef([
-    "Tomando en cuenta variables climatológicas…",
-    "Tomando los productos y organizándolos…",
-    "¡Ya casi! Preparando tu información…"
-  ]);
-  const [tipIndex, setTipIndex] = useState(0);
 
   useEffect(() => {
     if (!munId) return;
@@ -86,13 +80,7 @@ export default function TopProductos() {
   const handleConfirmFecha = async (fechaISO) => {
     setFechaInicio(fechaISO);
     setLoading(true);
-    let i = 0;
-    const timer = setInterval(() => {
-      i = (i + 1) % tipsRef.current.length;
-      setTipIndex(i);
-    }, 1100);
-    await new Promise((r) => setTimeout(r, 2600));
-    clearInterval(timer);
+    await new Promise((r) => setTimeout(r, 8000));
     setLoading(false);
   };
 
@@ -108,7 +96,7 @@ export default function TopProductos() {
   return (
     <>
       {!fechaInicio && <StartModal municipio={municipio} onConfirm={handleConfirmFecha} />}
-      {loading && <LoadingScreen tips={tipsRef.current} activeIndex={tipIndex} showProgress useGif={false} />}
+      {loading && <CargaPantalla visible tips={[]} />}
       {!!fechaInicio && !loading && (
         <Resultados municipio={municipio} fechaInicio={fechaInicio} items={itemsAll} />
       )}

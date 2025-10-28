@@ -1,35 +1,80 @@
-import React from "react";
-import "../DOCSS/top3.css";
+// src/Agricultores/VistasTop3/CargaPantalla.jsx
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import "../DOCSS/cargapantalla.css";
 
-export default function LoadingScreen({ tips = [], activeIndex = 0, showProgress = true, useGif = false }) {
+export default function LoadingScreen({
+  visible = true,
+  tips = [],
+  intervalMs = 3000,
+  gifSrc = "/XOsX.gif",
+  showProgress = true
+}) {
+  const frases = useMemo(
+    () =>
+      tips.length
+        ? tips
+        : [
+            "Consultando precios históricos...",
+            "Consultando información de clima...",
+            "Calculando valores...",
+            "Creando Top 3...",
+            "Escogiendo mejores productos...",
+            "Terminando de cosechar resultados..."
+          ],
+    [tips]
+  );
+
+  const [index, setIndex] = useState(0);
+  const [bar, setBar] = useState(0.08);
+  const tipTimer = useRef(null);
+  const rafRef = useRef(null);
+
+  useEffect(() => {
+    if (!visible) return;
+    tipTimer.current = setInterval(() => {
+      setIndex((i) => (i + 1) % frases.length);
+    }, intervalMs);
+    return () => {
+      if (tipTimer.current) clearInterval(tipTimer.current);
+    };
+  }, [visible, frases.length, intervalMs]);
+
+  useEffect(() => {
+    if (!visible) return;
+    let start;
+    const duration = 10000;
+    const loop = (t) => {
+      if (!start) start = t;
+      const p = ((t - start) % duration) / duration;
+      setBar(Math.max(0.08, p));
+      rafRef.current = requestAnimationFrame(loop);
+    };
+    rafRef.current = requestAnimationFrame(loop);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [visible]);
+
+  if (!visible) return null;
+
   return (
-    <div className="top3-overlay top3-overlay--blur" aria-live="polite">
-      <div className="top3-loading-card">
-        <div className="top3-load-head">
-          <div className="top3-lettuce" aria-hidden="true">
-            {useGif ? (
-              <img src="/lechuga.gif" alt="" style={{ width: 40, height: 40, objectFit: "contain" }} />
-            ) : (
-              <span className="spin">🥬</span>
-            )}
-          </div>
-          <div>
-            <div style={{ fontWeight: 800, letterSpacing: .3 }}>Cargando tu recomendación</div>
-            <div style={{ opacity: .85, fontSize: 13 }}>Pantalla de juego · no cierres esta ventana</div>
-          </div>
+    <div className="carga-overlay" role="status" aria-live="polite">
+      <div className="carga-sky">
+        <span className="carga-cloud c1" />
+        <span className="carga-cloud c2" />
+        <span className="carga-cloud c3" />
+      </div>
+      <div className="carga-card">
+        <div className="carga-gif">
+          <img src={gifSrc} alt="" />
         </div>
-        <div className="top3-tips">
-          {tips.map((t, i) => (
-            <div key={`${i}-${t.slice(0,12)}`} className="top3-tip" style={{ opacity: i === activeIndex ? 1 : .45 }}>
-              {t}
-            </div>
-          ))}
-        </div>
+        <div className="carga-text">{frases[index]}</div>
         {showProgress && (
-          <div className="top3-progress">
-            <span />
+          <div className="carga-progress">
+            <div className="carga-bar" style={{ transform: `scaleX(${bar})` }} />
           </div>
         )}
+        <div className="carga-chip">Modo agricultor</div>
       </div>
     </div>
   );

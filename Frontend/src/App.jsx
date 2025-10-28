@@ -92,6 +92,11 @@ function App() {
                         </ProtectedRoute>
                     } />
                    </Route>
+                   <Route path="/StartModal" element={
+                        <ProtectedRoute allowedRoles={['USER']}>
+                            <StartModal />
+                        </ProtectedRoute>
+                    } />
 
                 
 
