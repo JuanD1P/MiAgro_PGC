@@ -482,7 +482,6 @@ export default function Inicio() {
                       {p.variedad ? <span className={styles.proChip}>{p.variedad}</span> : null}
                       {p.ciclo ? <span className={styles.proChip}>{p.ciclo}</span> : null}
                     </div>
-                    <button className={styles.proBtn} onClick={() => navigate(`/Productos/${p.id}`)}>Ver detalles</button>
                   </div>
                 </article>
               ))}
