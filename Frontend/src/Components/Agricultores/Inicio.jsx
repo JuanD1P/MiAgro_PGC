@@ -4,6 +4,7 @@ import { db } from "../../firebase/client";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import styles from "./DOCSS/inicio.module.css";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 
 function norm(s = "") {
   return s.toString().toLowerCase().normalize("NFD").replace(/\p{Diacritic}+/gu, "").trim();
@@ -35,6 +36,7 @@ export default function Inicio() {
   const [loadingWx, setLoadingWx] = useState(false);
   const [booting, setBooting] = useState(true);
   const [productos, setProductos] = useState([]);
+  const [cultivos, setCultivos] = useState([]);
   const trackRef = useRef(null);
   const autoRef = useRef(null);
   const pausedRef = useRef(false);
@@ -64,6 +66,23 @@ export default function Inicio() {
       setProductos(rows);
     });
     return unsub;
+  }, []);
+
+  useEffect(() => {
+    const auth = getAuth();
+    const off = onAuthStateChanged(auth, (u) => {
+      if (!u?.uid) {
+        setCultivos([]);
+        return;
+      }
+      const qy = query(collection(db, "usuarios", u.uid, "cultivos"), orderBy("creadoEn", "desc"));
+      const unsub = onSnapshot(qy, (snap) => {
+        const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        setCultivos(rows);
+      });
+      return () => unsub();
+    });
+    return () => off();
   }, []);
 
   useEffect(() => {
@@ -237,6 +256,19 @@ export default function Inicio() {
     return tips[idx](m);
   }, [municipioSel?.municipio]);
 
+  const cultivosJoin = useMemo(() => {
+    if (!cultivos?.length) return [];
+    return cultivos.map((c) => {
+      const p = productos.find((pp) => norm(pp.nombre) === norm(c.producto));
+      return {
+        ...c,
+        img: p?.url || "/producto_placeholder.jpg",
+        variedad: p?.variedad || "",
+        tipo: c.tipo || p?.tipo || "",
+      };
+    });
+  }, [cultivos, productos]);
+
   return (
     <div className={`${styles.wrap} ${!showLoader ? styles.ready : ""}`}>
       {showLoader && (
@@ -377,42 +409,42 @@ export default function Inicio() {
         </div>
       </section>
 
-{/* Top 3 recomendado (reemplaza tu sección completa) */}
-<section className={styles.top3Wrap} aria-label="Top 3 recomendado">
-  <div className={styles.top3Band}>
-    <div className={styles.top3Copy}>
-      <h2 className={styles.top3Title}>¿No sabes qué sembrar?</h2>
-      <p className={styles.top3Lead}>Nosotros te ayudamos con…</p>
-      <ul className={styles.top3List}>
-        <li>Análisis de clima histórico y pronóstico regional.</li>
-        <li>Demanda y precios recientes del mercado.</li>
-        <li>Parámetros agro del cultivo en tu zona.</li>
-      </ul>
-      <p className={styles.top3After}>
-        Después te damos el <b>Top 3</b> de los mejores productos para sembrar,
-        la <b>fecha estimada de cosecha</b> y te contamos <b>por qué</b>.
-      </p>
-      <button
-        className={styles.top3CTA}
-        onClick={() => navigate("/TopProductos")}
-        aria-label="Ir a la vista Top 3"
-      >
-        Consultar Top 3
-      </button>
-    </div>
+      <section className={styles.top3Wrap} aria-label="Top 3 recomendado">
+        <div className={styles.top3Band}>
+          <div className={styles.top3Copy}>
+            <h2 className={styles.top3Title}>¿No sabes qué sembrar?</h2>
+            <p className={styles.top3Lead}>Nosotros te ayudamos con…</p>
+            <ul className={styles.top3List}>
+              <li>Análisis de clima histórico y pronóstico regional.</li>
+              <li>Demanda y precios recientes del mercado.</li>
+              <li>Parámetros agro del cultivo en tu zona.</li>
+            </ul>
+            <p className={styles.top3After}>
+              Después te damos el <b>Top 3</b> de los mejores productos para sembrar,
+              la <b>fecha estimada de cosecha</b> y te contamos <b>por qué</b>.
+            </p>
+            <button
+              className={styles.top3CTA}
+              onClick={() => navigate("/TopProductos")}
+              aria-label="Ir a la vista Top 3"
+            >
+              Consultar Top 3
+            </button>
+          </div>
 
-    <div className={styles.top3Art} role="presentation">
-      <img
-        src="/granjerozzz.png"
-        alt="Granjero descansando"
-        className={styles.top3Farmer}
-        loading="lazy"
-        decoding="async"
-        draggable={false}
-      />
-    </div>
-  </div>
-</section>
+          <div className={styles.top3Art} role="presentation">
+            <img
+              src="/granjerozzz.png"
+              alt="Granjero descansando"
+              className={styles.top3Farmer}
+              loading="lazy"
+              decoding="async"
+              draggable={false}
+            />
+          </div>
+        </div>
+      </section>
+
 
 
       <section className={styles.bandPro}>
@@ -461,6 +493,62 @@ export default function Inicio() {
           </div>
         </div>
       </section>
+            {cultivosJoin.length > 0 && (
+        <section className={styles.myWrap} aria-label="Mis cultivos">
+          <div className={styles.myHead}>
+            <h2 className={styles.myTitle}>Mis cultivos</h2>
+            <p className={styles.mySub}>Registros asociados a tu cuenta</p>
+          </div>
+
+          <div className={styles.myGrid}>
+            {cultivosJoin.map((c) => (
+              <article key={c.id} className={styles.myCard}>
+                <div className={styles.myImgBox}>
+                  <img src={c.img} alt={c.producto} className={styles.myImg} loading="lazy" decoding="async" />
+                </div>
+                <div className={styles.myBody}>
+                  <h3 className={styles.myName}>{c.producto}</h3>
+                  <div className={styles.myChips}>
+                    {c.tipo ? <span className={styles.myChip}>{c.tipo}</span> : null}
+                    {c.variedad ? <span className={styles.myChip}>{c.variedad}</span> : null}
+                    <span className={styles.myChip}>{c.metros2 ?? 0} m²</span>
+                    {c.municipio ? (
+                      <span className={styles.myChip}>{c.municipio}{c.departamento ? ` – ${c.departamento}` : ""}</span>
+                    ) : null}
+                  </div>
+
+                  <div className={styles.myMeta}>
+                    <div className={styles.myKard}>
+                      <div className={styles.kLabel}>Siembra</div>
+                      <div className={styles.kValue}>{c.fechaSiembra || "—"}</div>
+                    </div>
+                    <div className={styles.myKard}>
+                      <div className={styles.kLabel}>Cosecha</div>
+                      <div className={styles.kValue}>{c.fechaCosecha || "—"}</div>
+                    </div>
+                    <div className={styles.myKard}>
+                      <div className={styles.kLabel}>Temp.</div>
+                      <div className={styles.kValue}>{c.temperatura || "—"}</div>
+                    </div>
+                    <div className={styles.myKard}>
+                      <div className={styles.kLabel}>Humedad</div>
+                      <div className={styles.kValue}>{c.humedad || "—"}</div>
+                    </div>
+                    <div className={styles.myKard}>
+                      <div className={styles.kLabel}>Altitud</div>
+                      <div className={styles.kValue}>{c.altitud || "—"}</div>
+                    </div>
+                    <div className={styles.myKard}>
+                      <div className={styles.kLabel}>Clima</div>
+                      <div className={styles.kValue}>{c.climaCoincidencia != null ? `${c.climaCoincidencia}%` : "—"}</div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

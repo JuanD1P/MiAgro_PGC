@@ -45,9 +45,9 @@ function Calendar({ minISO, valueISO, onChange }) {
   return (
     <div className="cal">
       <div className="cal-head">
-        <button type="button" className="cal-nav">‹</button>
+        <button type="button" className="cal-nav" onClick={prev} aria-label="Mes anterior">‹</button>
         <div className="cal-title">{meses[mes].charAt(0).toUpperCase()+meses[mes].slice(1)} {anio}</div>
-        <button type="button" className="cal-nav">›</button>
+        <button type="button" className="cal-nav" onClick={next} aria-label="Mes siguiente">›</button>
       </div>
       <div className="cal-days">{dias.map(d=><div key={d} className="cal-day">{d}</div>)}</div>
       <div className="cal-grid">

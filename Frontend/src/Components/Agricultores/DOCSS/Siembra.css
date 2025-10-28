@@ -1,0 +1,98 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap");
+
+:root{
+  --bg:#cde2e8;
+  --panel:#ffffff;
+  --ink:#0b1f4d;
+  --ink2:#0b0f12;
+  --muted:#4e6475;
+  --brand:#2346ff;
+  --brand2:#3a5bff;
+  --ring:#d8e5f2;
+  --shadow:0 14px 40px rgba(2,6,23,.12);
+}
+
+*{box-sizing:border-box}
+body{font-family:"Plus Jakarta Sans",system-ui,ui-sans-serif,Arial}
+
+.siem-wrap{
+  display:grid;
+  grid-template-columns:.85fr 1.15fr;
+  gap:44px;
+  min-height:calc(100vh - 80px);
+  background:var(--bg);
+  padding:44px 56px;
+  align-items:center;
+}
+
+.siem-left{display:flex;flex-direction:column;gap:18px}
+.siem-hello{margin:0;color:#17324f;font-weight:900;letter-spacing:.06em;text-transform:uppercase;font-size:.95rem}
+.siem-title{margin:0;color:var(--ink2);font-weight:900;font-size:3rem;line-height:1.05}
+.siem-sub{margin:0;color:#17324f;font-weight:700;font-size:1.05rem}
+
+.siem-cards{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(260px,1fr));
+  gap:16px;
+  max-width:720px;
+}
+.siem-card{
+  background:var(--panel);
+  border:1px solid var(--ring);
+  border-radius:18px;
+  padding:18px;
+  box-shadow:var(--shadow);
+}
+.siem-card-label{font-size:.9rem;color:var(--muted);font-weight:800;margin-bottom:6px}
+.siem-card-val{font-size:1.2rem;font-weight:900;color:var(--ink)}
+
+.siem-m2{display:flex;flex-direction:column;gap:8px;max-width:520px;margin-top:8px}
+.siem-m2-label{font-weight:800;color:#0d1b2e;font-size:.98rem}
+.siem-m2-input{
+  appearance:none;
+  width:100%;
+  padding:14px 16px;
+  border-radius:12px;
+  border:1px solid var(--ring);
+  background:#fff;
+  font-weight:700;
+  font-size:1rem;
+  outline:none;
+  transition:all .2s ease;
+}
+.siem-m2-input:focus{box-shadow:0 0 0 4px rgba(35,70,255,.2)}
+
+.siem-actions{display:flex;gap:12px;margin-top:6px}
+.siem-btn{
+  appearance:none;
+  border:0;
+  background:linear-gradient(180deg,var(--brand),var(--brand2));
+  color:#fff;
+  padding:14px 26px;
+  border-radius:12px;
+  font-weight:900;
+  font-size:1rem;
+  cursor:pointer;
+  box-shadow:0 12px 28px rgba(35,70,255,.28);
+  transition:all .15s ease;
+}
+.siem-btn:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.05)}
+.siem-btn:disabled{opacity:.6;cursor:not-allowed}
+.siem-btn.ghost{background:#eef3ff;color:var(--brand2);box-shadow:none}
+
+.siem-meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+.chip{display:inline-flex;align-items:center;padding:10px 16px;border-radius:999px;background:#fff;border:1px solid var(--ring);font-weight:900;color:#203754}
+
+.siem-right{display:flex;align-items:center;justify-content:center}
+.siem-hero{width:100%;max-width:980px;height:auto;object-fit:contain;border-radius:22px}
+
+@media (max-width:1100px){
+  .siem-wrap{grid-template-columns:1fr;gap:28px;padding:32px}
+  .siem-left{align-items:center;text-align:center}
+  .siem-title{font-size:2.6rem}
+  .siem-cards{grid-template-columns:1fr 1fr}
+}
+@media (max-width:720px){
+  .siem-cards{grid-template-columns:1fr}
+  .siem-title{font-size:2.2rem}
+}

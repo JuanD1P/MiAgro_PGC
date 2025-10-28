@@ -16,6 +16,7 @@ import MunicipioDetalle from './Components/Administradores/MunicipioDetalle';
 import ChatIA from './Components/Agricultores/ChatIA';
 import TopProductos from './Components/Agricultores/TopProductos';
 import StartModal from './Components/Agricultores/VistasTop3/StartModal.jsx';
+import Siembra from './Components/Agricultores/Siembra.jsx';
 
 function App() {
     return (
@@ -62,6 +63,11 @@ function App() {
                     <Route path ="/TopProductos" element={
                         <ProtectedRoute allowedRoles={['USER']}>
                             <TopProductos />
+                        </ProtectedRoute>
+                    } />
+                    <Route path ="/Siembra" element={
+                        <ProtectedRoute allowedRoles={['USER']}>
+                            <Siembra />
                         </ProtectedRoute>
                     } />
 

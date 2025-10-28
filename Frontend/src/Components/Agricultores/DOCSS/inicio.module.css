@@ -336,3 +336,122 @@
   .weekStrip{ grid-template-columns:repeat(7,1fr); }
   .proTrack{ grid-auto-columns:minmax(240px, 78vw); }
 }
+.myWrap {
+  padding: 28px 20px 4px;
+}
+.myHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.myTitle {
+  margin: 0;
+  font-weight: 900;
+  font-size: 1.8rem;
+  color: #0b1f4d;
+}
+.mySub {
+  margin: 0;
+  color: #5b6b7d;
+  font-weight: 700;
+}
+
+.myGrid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 16px;
+}
+
+.myCard {
+  grid-column: span 12;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 18px;
+  background: #ffffff;
+  border: 1px solid #d8e5f2;
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: 0 12px 28px rgba(13, 27, 62, 0.08);
+}
+
+.myImgBox {
+  width: 100%;
+  height: 220px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #f3f6fb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.myImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.myBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.myName {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #0b0f12;
+}
+
+.myChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.myChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #eef3ff;
+  color: #2d49ff;
+  font-weight: 900;
+  border: 1px solid #d5e0ff;
+}
+
+.myMeta {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(120px, 1fr));
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.myKard {
+  background: #f9fbff;
+  border: 1px solid #e6eefb;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.kLabel {
+  color: #5b6b7d;
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+.kValue {
+  color: #0b1f4d;
+  font-weight: 900;
+  font-size: 1rem;
+}
+
+@media (max-width: 1200px) {
+  .myCard { grid-template-columns: 260px 1fr; }
+  .myMeta { grid-template-columns: repeat(3, minmax(140px, 1fr)); }
+}
+@media (max-width: 860px) {
+  .myCard { grid-template-columns: 1fr; }
+  .myImgBox { height: 200px; }
+  .myMeta { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+}

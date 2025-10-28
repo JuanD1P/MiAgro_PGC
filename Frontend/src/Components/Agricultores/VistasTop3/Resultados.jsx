@@ -249,7 +249,9 @@ export default function Resultados({ municipio, fechaInicio, items = [] }) {
     });
   };
   const cerrarDetalle = () => setDetalle(null);
-  const irSembrar = (row) => navigate("/agricultores/sembrar", { state: { producto: row?.nombre, municipio, fechaInicio } });
+
+  const irSembrar = (row) =>
+    navigate("/Siembra", { state: { producto: row, municipio, fechaInicio } });
 
   const goTabla = () => {
     if (!verTabla) setVerTabla(true);
